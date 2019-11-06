@@ -95,7 +95,9 @@
 
 %tu idzie streszczenie na strone poczatkowa
 \begin{abstract}
-In this thesis dataloading process has been described for needs of deep learning. The concept of the process has been deliberated in terms of time consumed by computing machines. There is an overview of a current state of the domain including programming techniques used by Python deep learning frameworks: PyTorch and TensorFlow. The aim of thesis has been finding bottle necks of dataloading for common deep learning tasks and optimise some of them at the internal code level of the frameworks or the usage of the frameworks. The analysis has been limited to PyTorch and TensorFlow cooperating with NVIDIA GPUs. As a result of the analysis, several bottle necks has been identified. Some of them has been optimised at the internal framework level, a few others has been explained how to be optimised adjusting the use of the frameworks.
+
+In this thesis performance of data loading process for deep learning on Nvidia GPUs has been analyzed. The overview of the currently used techniques of optimization are included. Over the course of the work, data loading process has been profiled to identify bottlenecks in the most common use cases in PyTorch and TensorFlow frameworks and chosen ones were mitigated, on either internal level of those frameworks or by creating examples of usage that improve the performance.
+
 \end{abstract}
 
 \tableofcontents
@@ -105,9 +107,13 @@ In this thesis dataloading process has been described for needs of deep learning
 \chapter*{Introduction}
 \addcontentsline{toc}{chapter}{Introduction}
 
+    {\bf Topic}
+
 For several years the terms \emph{Deep learning} and \emph{Neural networks} have been getting more and more recognisable thanks to the great impact of this technology on a huge variety of business aspects. \emph{Speech recognition}, \emph{interpretation of natural language}, \emph{image classification}, \emph{computer vision} and even \emph{self-driving vehicles} are examples of the use of the deep learning technology. The increasing demand for deep learning solutions has caused the race to maximised the performance of available computing machines. The research and practise have shown that GPUs are best suited for deep learning computation purpose because they are unrivaled in linear algebra computations. There are several manners of increasing the performance and all of them are the interests of research and development teams of information technology industries. Some of the ways are constructing more powerful computing clusters or faster computation units. Others are targeted at software issues (operational systems, programming and algorithmic techniques). \emph{Dataloading} mostly relates to the category which has been mentioned as the last one. Let assume the following definition.
 
 \emph{Dataloading} is the process of copying data from non-volatile storage to GPU memory including processing the data in CPU.
+
+    {\bf Functionality}
 
 %TODO
 
