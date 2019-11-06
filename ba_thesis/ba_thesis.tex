@@ -107,13 +107,17 @@ In this thesis performance of data loading process for deep learning on Nvidia G
 \chapter*{Introduction}
 \addcontentsline{toc}{chapter}{Introduction}
 
-    {\bf Topic}
+\section*{Topic}
 
-For several years the terms \emph{Deep learning} and \emph{Neural networks} have been getting more and more recognisable thanks to the great impact of this technology on a huge variety of business aspects. \emph{Speech recognition}, \emph{interpretation of natural language}, \emph{image classification}, \emph{computer vision} and even \emph{self-driving vehicles} are examples of the use of the deep learning technology. The increasing demand for deep learning solutions has caused the race to maximised the performance of available computing machines. The research and practise have shown that GPUs are best suited for deep learning computation purpose because they are unrivaled in linear algebra computations. There are several manners of increasing the performance and all of them are the interests of research and development teams of information technology industries. Some of the ways are constructing more powerful computing clusters or faster computation units. Others are targeted at software issues (operational systems, programming and algorithmic techniques). \emph{Dataloading} mostly relates to the category which has been mentioned as the last one. Let assume the following definition.
+For several years the terms \emph{deep learning} and \emph{neural networks} have been getting more and more attention, thanks to the great impact of this technology on a wide variety of applications. \emph{Speech recognition}, \emph{natural language processing}, and \emph{computer vision} are only a few examples of the use cases of the deep learning technology. The increasing demand for deep learning solutions has caused the race for maximizing the performance of computations. From the very beginning of this field GPUs have reached state-of-the-art performance for almost every model and they still remain unbeaten as the best general purpose deep learning computing device.
 
-\emph{Dataloading} is the process of copying data from non-volatile storage to GPU memory including processing the data in CPU.
+The performance of deep learning process depends on many different factors. In this thesis we focus on the data loading process, which is the first step of the model pipeline. By data loading we mean all the operations that are done on the training data before it is processed by the actual neural network. It implies data loading includes not only data preprocessing routines s.a. shuffling, augmenting and different kinds of transformations, but also data transfers (CPU to GPU, GPU to GPU, etc.) and memory alignment. On one hand, in most cases data loading is not a bottleneck of the whole deep learning model, but as the GPUs are becoming faster it will likely be the case in the near future.
 
-    {\bf Functionality}
+The process of data loading can be optimized in many ways. Big effort is being put into writing efficient data preprocessing code which runs on GPU - one can mention Nvidia DALI as an example here. Furthermore, deep learning frameworks, s.a. PyTorch and Tensorflow, provide solutions for parallelizing the data loading flow with the training of the neural network. The right use of appropriate features of CUDA libraries is also crucial in terms of the framework’s internal code. However, it appears that there are some good practices of using the deep learning framework that might drastically increase the data loading performance.
+
+Over the course of the work we profiled various use cases for PyTorch and TensorFlow. We identified and mitigated some of the most common bottlenecks. We measured achieved performance improvements.
+
+\section*{Functionality}
 
 %TODO
 
