@@ -1,7 +1,9 @@
 # dataloading_optimisation
 Contents:
-- [DLRM](https://github.com/deutzia/dataloading_optimisation/new/dlrm_dev#DLRM)
-  - [Launching terabyte dataloading pipeline with benchmark](https://github.com/deutzia/dataloading_optimisation/new/dlrm_dev#launching_terabyte_dataloading_pipeline_with_benchmark)
+- [DLRM](https://github.com/deutzia/dataloading_optimisation/tree/dlrm_dev#DLRM)
+  - [Launching terabyte dataloading pipeline with benchmark](https://github.com/deutzia/dataloading_optimisation/tree/dlrm_dev#launching_terabyte_dataloading_pipeline_with_benchmark)
+    - [Overview](https://github.com/deutzia/dataloading_optimisation/tree/dlrm_dev#overview)
+    - [Steps to launch terabyte dataloading pipeline](https://github.com/deutzia/dataloading_optimisation/tree/dlrm_dev#steps_to_launch_terabyte_dataloading_pipeline)
 
 # DLRM
 
