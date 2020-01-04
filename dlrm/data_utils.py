@@ -45,7 +45,7 @@ from os import path
 # import collections as coll
 
 import numpy as np
-
+import time
 
 def convertUStringToDistinctIntsDict(mat, convertDicts, counts):
     # Converts matrix of unicode strings into distinct integers.
@@ -894,6 +894,12 @@ def getCriteoAdData(
     # Output:
     #   o_file (str): output file path
 
+    def logPerfMeasurement(name):
+        end_time = time.time()
+        print(f"[{name}] elapsed {end_time - logPerfMeasurement.start_time}", file=sys.stderr)
+        logPerfMeasurement.start_time = end_time
+    logPerfMeasurement.start_time = time.time()
+
     #split the datafile into path and filename
     lstr = datafile.split("/")
     d_path = "/".join(lstr[0:-1]) + "/"
@@ -903,6 +909,7 @@ def getCriteoAdData(
 
     # count number of datapoints in training set
     total_file = d_path + d_file + "_day_count.npz"
+    logPerfMeasurement("getCriteoAdData initialisation")
     if path.exists(total_file):
         with np.load(total_file) as data:
             total_per_file = list(data["total_per_file"])
@@ -960,6 +967,8 @@ def getCriteoAdData(
                     total_count += total_per_file_count
                 else:
                     sys.exit("ERROR: Criteo Terabyte Dataset path is invalid; please download from https://labs.criteo.com/2013/12/download-terabyte-click-logs")
+    logPerfMeasurement("getCriteoAdData reading data finished")
+
 
     # process a file worth of data and reinitialize data
     # note that a file main contain a single or multiple splits
@@ -1065,6 +1074,7 @@ def getCriteoAdData(
                 i,
                 total_per_file[i],
             )
+    logPerfMeasurement(f"getCriteoAdData process_one_file on all the files finished")
 
     # report and save total into a file
     total_count = np.sum(total_per_file)
@@ -1101,6 +1111,7 @@ def getCriteoAdData(
         # load (uniques and) counts
         with np.load(d_path + d_file + "_fea_count.npz") as data:
             counts = data["counts"]
+    logPerfMeasurement(f"getCriteoAdData reporting and saving total finished")
 
     # process all splits
     processCriteoAdData(d_path, d_file, npzfile, days, convertDicts, counts)
@@ -1117,6 +1128,7 @@ def getCriteoAdData(
         memory_map,
         o_filename
     )
+    logPerfMeasurement(f"getCriteoAdData processing all splits finished")
 
     return o_file
 
