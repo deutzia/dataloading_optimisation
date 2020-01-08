@@ -1115,6 +1115,7 @@ def getCriteoAdData(
 
     # process all splits
     processCriteoAdData(d_path, d_file, npzfile, days, convertDicts, counts)
+    logPerfMeasurement(f"getCriteoAdData calling processCriteoAdData")
     o_file = concatCriteoAdData(
         d_path,
         d_file,
@@ -1128,7 +1129,7 @@ def getCriteoAdData(
         memory_map,
         o_filename
     )
-    logPerfMeasurement(f"getCriteoAdData processing all splits finished")
+    logPerfMeasurement(f"getCriteoAdData calling concatCriteoAdData")
 
     return o_file
 
