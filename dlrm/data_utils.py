@@ -46,6 +46,7 @@ from os import path
 
 import numpy as np
 import time
+import pandas
 
 def convertUStringToDistinctIntsDict(mat, convertDicts, counts):
     # Converts matrix of unicode strings into distinct integers.
@@ -978,58 +979,62 @@ def getCriteoAdData(
             split,
             num_data_in_split,
     ):
-        with open(str(datfile)) as f:
-            y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
-            X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
-            X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
-            if sub_sample_rate == 0.0:
-                rand_u = 1.0
-            else:
-                rand_u = np.random.uniform(low=0.0, high=1.0, size=num_data_in_split)
+        y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
+        X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
+        X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
 
-            i = 0
-            for k, line in enumerate(f):
-                # process a line (data point)
-                line = line.split('\t')
-                # set missing values to zero
-                for j in range(len(line)):
-                    if (line[j] == '') or (line[j] == '\n'):
-                        line[j] = '0'
-                # sub-sample data by dropping zero targets, if needed
-                target = np.int32(line[0])
-                if target == 0 and \
-                   (rand_u if sub_sample_rate == 0.0 else rand_u[k]) < sub_sample_rate:
-                    continue
+        i = 0
+        df = pandas.read_csv(datfile, sep="\t", header=None)
 
-                y[i] = target
-                X_int[i] = np.array(line[1:14], dtype=np.int32)
-                if max_ind_range > 0:
-                    X_cat[i] = np.array(
-                        list(map(lambda x: int(x, 16) % max_ind_range, line[14:])),
-                        dtype=np.int32
-                    )
-                else:
-                    X_cat[i] = np.array(
-                        list(map(lambda x: int(x, 16), line[14:])),
-                        dtype=np.int32
-                    )
-                # count uniques
-                for j in range(26):
-                    convertDicts[j][X_cat[i][j]] = 1
+        targets = df[0]
+        rand_u = np.random.uniform(low=0.0, high=1.00, size=num_data_in_split)
+        if sub_sample_rate != 0:
+            rand_booleans = rand_u < sub_sample_rate
+        else:
+            rand_booleans = np.full(num_data_in_split, True, dtype=bool)
+        keep_rows = ((targets > 0) | rand_booleans)
+        df = df.loc[keep_rows]
 
-                # debug prints
-                print(
-                    "Load %d/%d  Split: %d  Label True: %d  Stored: %d"
-                    % (
-                        i,
-                        num_data_in_split,
-                        split,
-                        target,
-                        y[i],
-                    ),
-                    end="\r",
-                )
-                i += 1
+        y = df[0]
+        # Assume there were no Nans in the original data, so only nans are
+        # from missing values
+        y.fillna(0, inplace=True)
+        X_int = df[1:14]
+        X_int.fillna(0, inplace=True)
+        X_cat = df.loc[:, 14:39].fillna("0")
+        if max_ind_range > 0:
+            X_cat = X_cat.applymap(lambda x: int(x, 16) % max_ind_range if type(x) == type("") else x)
+        else:
+            X_cat = X_cat.applymap(lambda x: int(x, 16) if type(x) == type("") else x)
+        d = {}
+        for j in range(26):
+            d[j + 14] = j
+        X_cat.rename(columns=d, inplace=True)
+        for j in range(26):
+            uniques = X_cat[j].unique()
+            ones = np.ones(len(uniques))
+            convertDicts[j] = pandas.Series(ones, index=uniques)
+
+#            for k, line in enumerate(f):
+#                # sub-sample data by dropping zero targets, if needed
+#                target = np.int32(line[0])
+#                if target == 0 and \
+#                   (rand_u if sub_sample_rate == 0.0 else rand_u[k]) < sub_sample_rate:
+#                    continue
+#
+#                # debug prints
+#                print(
+#                    "Load %d/%d  Split: %d  Label True: %d  Stored: %d"
+#                    % (
+#                        i,
+#                        num_data_in_split,
+#                        split,
+#                        target,
+#                        y[i],
+#                    ),
+#                    end="\r",
+#                )
+#                i += 1
 
             # store num_data_in_split samples or extras at the end of file
             # count uniques
@@ -1038,18 +1043,18 @@ def getCriteoAdData(
             #     for x in X_cat_t[j,:]:
             #         convertDicts[j][x] = 1
             # store parsed
-            filename_s = npzfile + "_{0}.npz".format(split)
-            if path.exists(filename_s):
-                print("\nSkip existing " + filename_s)
-            else:
-                np.savez_compressed(
-                    filename_s,
-                    X_int=X_int[0:i, :],
-                    # X_cat=X_cat[0:i, :],
-                    X_cat_t=np.transpose(X_cat[0:i, :]),  # transpose of the data
-                    y=y[0:i],
-                )
-                print("\nSaved " + npzfile + "_{0}.npz!".format(split))
+        filename_s = npzfile + "_{0}.npz".format(split)
+        if path.exists(filename_s):
+            print("\nSkip existing " + filename_s)
+        else:
+            np.savez_compressed(
+                filename_s,
+                X_int=X_int,
+                X_cat=X_cat,
+                #X_cat_t=np.transpose(X_cat[0:i, :]),  # transpose of the data
+                y=y,
+            )
+            print("\nSaved " + npzfile + "_{0}.npz!".format(split))
         return i
 
     # create all splits (reuse existing files if possible)
