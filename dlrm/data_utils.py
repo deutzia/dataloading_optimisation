@@ -142,9 +142,10 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
                 )
                 '''
                 # Approach 2a: using pre-computed dictionaries
-                X_cat_t = np.zeros(data["X_cat_t"].shape)
+                X_cat_t_original = data["X_cat"].transpose()
+                X_cat_t = np.zeros(X_cat_t_original.shape)
                 for j in range(26):
-                    for k, x in enumerate(data["X_cat_t"][j, :]):
+                    for k, x in enumerate(X_cat_t_original[j, :]):
                         X_cat_t[j, k] = convertDicts[j][x]
                 # continuous features
                 X_int = data["X_int"]
@@ -999,50 +1000,26 @@ def getCriteoAdData(
         # Assume there were no Nans in the original data, so only nans are
         # from missing values
         y.fillna(0, inplace=True)
-        X_int = df[1:14]
-        X_int.fillna(0, inplace=True)
+        X_int = df.loc[:, 1:13].fillna(0)
+        X_int.astype(dtype=np.int32, copy=False)
         X_cat = df.loc[:, 14:39].fillna("0")
         if max_ind_range > 0:
             X_cat = X_cat.applymap(lambda x: int(x, 16) % max_ind_range if type(x) == type("") else x)
+            X_cat = X_cat.astype(dtype=np.int32, copy=False)
         else:
             X_cat = X_cat.applymap(lambda x: int(x, 16) if type(x) == type("") else x)
+            X_cat = X_cat.astype(dtype=np.int32, copy=False)
         d = {}
         for j in range(26):
             d[j + 14] = j
         X_cat.rename(columns=d, inplace=True)
         for j in range(26):
             uniques = X_cat[j].unique()
-            ones = np.ones(len(uniques))
-            convertDicts[j] = pandas.Series(ones, index=uniques)
+            for elem in uniques:
+                convertDicts[j][elem] = 1
+            print(convertDicts[j])
 
-#            for k, line in enumerate(f):
-#                # sub-sample data by dropping zero targets, if needed
-#                target = np.int32(line[0])
-#                if target == 0 and \
-#                   (rand_u if sub_sample_rate == 0.0 else rand_u[k]) < sub_sample_rate:
-#                    continue
-#
-#                # debug prints
-#                print(
-#                    "Load %d/%d  Split: %d  Label True: %d  Stored: %d"
-#                    % (
-#                        i,
-#                        num_data_in_split,
-#                        split,
-#                        target,
-#                        y[i],
-#                    ),
-#                    end="\r",
-#                )
-#                i += 1
 
-            # store num_data_in_split samples or extras at the end of file
-            # count uniques
-            # X_cat_t  = np.transpose(X_cat)
-            # for j in range(26):
-            #     for x in X_cat_t[j,:]:
-            #         convertDicts[j][x] = 1
-            # store parsed
         filename_s = npzfile + "_{0}.npz".format(split)
         if path.exists(filename_s):
             print("\nSkip existing " + filename_s)
@@ -1051,7 +1028,6 @@ def getCriteoAdData(
                 filename_s,
                 X_int=X_int,
                 X_cat=X_cat,
-                #X_cat_t=np.transpose(X_cat[0:i, :]),  # transpose of the data
                 y=y,
             )
             print("\nSaved " + npzfile + "_{0}.npz!".format(split))
