@@ -48,65 +48,12 @@ import numpy as np
 import time
 import pandas
 
-def convertUStringToDistinctIntsDict(mat, convertDicts, counts):
-    # Converts matrix of unicode strings into distinct integers.
-    #
-    # Inputs:
-    #     mat (np.array): array of unicode strings to convert
-    #     convertDicts (list): dictionary for each column
-    #     counts (list): number of different categories in each column
-    #
-    # Outputs:
-    #     out (np.array): array of output integers
-    #     convertDicts (list): dictionary for each column
-    #     counts (list): number of different categories in each column
 
-    # check if convertDicts and counts match correct length of mat
-    if len(convertDicts) != mat.shape[1] or len(counts) != mat.shape[1]:
-        print("Length of convertDicts or counts does not match input shape")
-        print("Generating convertDicts and counts...")
-
-        convertDicts = [{} for _ in range(mat.shape[1])]
-        counts = [0 for _ in range(mat.shape[1])]
-
-    # initialize output
-    out = np.zeros(mat.shape)
-
-    for j in range(mat.shape[1]):
-        for i in range(mat.shape[0]):
-            # add to convertDict and increment count
-            if mat[i, j] not in convertDicts[j]:
-                convertDicts[j][mat[i, j]] = counts[j]
-                counts[j] += 1
-            out[i, j] = convertDicts[j][mat[i, j]]
-
-    return out, convertDicts, counts
-
-
-def convertUStringToDistinctIntsUnique(mat, mat_uni, counts):
-    # mat is an array of 0,...,# samples, with each being 26 categorical features
-
-    # check if mat_unique and counts match correct length of mat
-    if len(mat_uni) != mat.shape[1] or len(counts) != mat.shape[1]:
-        print("Length of mat_unique or counts does not match input shape")
-        print("Generating mat_unique and counts...")
-
-        mat_uni = [np.array([]) for _ in range(mat.shape[1])]
-        counts = [0 for _ in range(mat.shape[1])]
-
-    # initialize output
-    out = np.zeros(mat.shape)
-    ind_map = [np.array([]) for _ in range(mat.shape[1])]
-
-    # find out and assign unique ids to features
-    for j in range(mat.shape[1]):
-        m = mat_uni[j].size
-        mat_concat = np.concatenate((mat_uni[j], mat[:, j]))
-        mat_uni[j], ind_map[j] = np.unique(mat_concat, return_inverse=True)
-        out[:, j] = ind_map[j][m:]
-        counts[j] = mat_uni[j].size
-
-    return out, mat_uni, counts
+def logPerfMeasurement(name):
+    end_time = time.time()
+    print(f"[{name}] elapsed {end_time - logPerfMeasurement.start_time}", file=sys.stderr)
+    logPerfMeasurement.start_time = end_time
+logPerfMeasurement.start_time = time.time()
 
 
 def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_counts):
@@ -129,18 +76,6 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
         else:
             with np.load(npzfile + "_{0}.npz".format(i)) as data:
                 # categorical features
-                '''
-                # Approach 1a: using empty dictionaries
-                X_cat, convertDicts, counts = convertUStringToDistinctIntsDict(
-                    data["X_cat"], convertDicts, counts
-                )
-                '''
-                '''
-                # Approach 1b: using empty np.unique
-                X_cat, convertDicts, counts = convertUStringToDistinctIntsUnique(
-                    data["X_cat"], convertDicts, counts
-                )
-                '''
                 # Approach 2a: using pre-computed dictionaries
                 X_cat_t_original = data["X_cat"].transpose()
                 X_cat_t = np.zeros(X_cat_t_original.shape)
@@ -205,354 +140,6 @@ def concatCriteoAdData(
         offset_per_file = np.array([0] + [x for x in total_per_file])
         for i in range(days):
             offset_per_file[i + 1] += offset_per_file[i]
-
-        '''
-        # Approach 1, 2 and 3 use indices, while Approach 4 does not use them
-        # create indices
-        indices = np.arange(total_count)
-        if data_split == "none":
-            if randomize == "total":
-                indices = np.random.permutation(indices)
-        else:
-            indices = np.array_split(indices, offset_per_file[1:-1])
-
-            # randomize train data (per day)
-            if randomize == "day":  # or randomize == "total":
-                for i in range(len(indices) - 1):
-                    indices[i] = np.random.permutation(indices[i])
-                print("Randomized indices per day ...")
-
-            train_indices = np.concatenate(indices[:-1])
-            test_indices = indices[-1]
-
-            # randomize train data (across days)
-            if randomize == "total":
-                train_indices = np.random.permutation(train_indices)
-                print("Randomized indices across days ...")
-
-            indices = np.concatenate((train_indices, test_indices))
-        # no reordering
-        # indices = np.arange(total_count)
-        '''
-        '''
-        # Approach 1: simple and slow (no grouping is used)
-        # check if data already exists
-        recreate_flag = False
-        for j in range(tot_fea):
-            filename_j = trafile + "_{0}_reordered.npy".format(j)
-            if path.exists(filename_j):
-                print("Using existing " + filename_j)
-            else:
-                recreate_flag = True
-        # load, reorder and concatenate data (memmap all reordered files per feature)
-        if recreate_flag:
-            # init reordered files (.npy appended automatically)
-            z = np.zeros((total_count))
-            for j in range(tot_fea):
-                filename_j = trafile + "_{0}_reordered".format(j)
-                np.save(filename_j, z)
-                print("Creating " + filename_j)
-
-            for i in range(days):
-                filename_i = d_path + npzfile + "_{0}_processed.npz".format(i)
-                with np.load(filename_i) as data:
-                    X_cat_t = np.transpose(data["X_cat"])
-                    X_int_t = np.transpose(data["X_int"])
-                    y = data["y"]
-                size = len(y)
-                # sanity check
-                if total_per_file[i] != size:
-                    sys.exit("ERROR: sanity check on number of samples failed")
-                # setup start and end ranges
-                start = offset_per_file[i]
-                end = offset_per_file[i + 1]
-                # print(filename_i)
-                # print("start=" + str(start) + " end=" + str(end)
-                #     + " diff=" + str(end - start) + "=" + str(total_per_file[i]))
-
-                for j in range(tot_fea):
-                    filename_j = trafile + "_{0}_reordered.npy".format(j)
-                    fj = np.load(filename_j, mmap_mode='r+')
-                    if j < tar_fea:
-                        fj[indices[start:end]] = y
-                    elif tar_fea <= j and j < tad_fea:
-                        fj[indices[start:end]] = X_int_t[j - tar_fea, :]
-                    else:
-                        fj[indices[start:end]] = X_cat_t[j - tad_fea, :]
-                    del fj
-        else:
-            print("Reordered fea files already exist, skipping ...")
-
-        # check if data already exists
-        recreate_flag = False
-        for i in range(days):
-            filename_i = d_path + npzfile + "_{0}_reordered.npz".format(i)
-            if path.exists(filename_i):
-                print("Using existing " + filename_i)
-            else:
-                recreate_flag = True
-        # split reordered data by files (memmap all reordered files per feature)
-        # on the day boundary del the file object and memmap again
-        if recreate_flag:
-            for i in range(days):
-                filename_i = d_path + npzfile + "_{0}_reordered.npz".format(i)
-                size = total_per_file[i]
-                X_int_t = np.zeros((den_fea, size))
-                X_cat_t = np.zeros((spa_fea, size))
-                # setup start and end ranges
-                start = offset_per_file[i]
-                end = offset_per_file[i + 1]
-                print("Creating " + filename_i)
-                # print("start=" + str(start) + " end=" + str(end)
-                #     + " diff=" + str(end - start) + "=" + str(total_per_file[i]))
-
-                for j in range(tot_fea):
-                    filename_j = trafile + "_{0}_reordered.npy".format(j)
-                    fj = np.load(filename_j, mmap_mode='r')
-                    if j < tar_fea:
-                        y = fj[start:end]
-                    elif tar_fea <= j and j < tad_fea:
-                        X_int_t[j - tar_fea, :] = fj[start:end]
-                    else:
-                        X_cat_t[j - tad_fea, :] = fj[start:end]
-                    del fj
-
-                np.savez_compressed(
-                    filename_i,
-                    X_cat=np.transpose(X_cat_t),  # transpose of the data
-                    X_int=np.transpose(X_int_t),  # transpose of the data
-                    y=y,
-                )
-        else:
-            print("Reordered day files already exist, skipping ...")
-        '''
-        '''
-        # Approach 2: group days
-        # check if data already exists
-        recreate_flag = False
-        for j in range(tot_fea):
-            filename_j = trafile + "_{0}_reordered.npy".format(j)
-            if path.exists(filename_j):
-                print("Using existing " + filename_j)
-            else:
-                recreate_flag = True
-        # load, reorder and concatenate data (memmap all reordered files per feature)
-        if recreate_flag:
-            # init reordered files (.npy appended automatically)
-            z = np.zeros((total_count))
-            for j in range(tot_fea):
-                filename_j = trafile + "_{0}_reordered".format(j)
-                np.save(filename_j, z)
-                print("Creating " + filename_j)
-
-            group_day = 3  # e.g. 8, 4 or 3
-            group_num = days // group_day
-            file_group = [i*group_day for i in range(group_num)] + [days]
-            for ii in range(group_num):
-                # for last may be group_size != group_num, therefore reset it below
-                group_size = file_group[ii + 1] - file_group[ii]
-                X_cat_t = [0]*group_size
-                X_int_t = [0]*group_size
-                y = [0]*group_size
-                start = [0]*group_size
-                end  = [0]*group_size
-                for ig in range(group_size):
-                    i = file_group[ii] + ig
-                    filename_i = d_path + npzfile + "_{0}_processed.npz".format(i)
-                    # setup start and end ranges
-                    start[ig] = offset_per_file[i]
-                    end[ig] = offset_per_file[i + 1]
-                    # print(filename_i)
-                    # load a group of files
-                    with np.load(filename_i) as data:
-                        X_cat_t[ig] = np.transpose(data["X_cat"])
-                        X_int_t[ig] = np.transpose(data["X_int"])
-                        y[ig] = data["y"]
-                    # sanity check
-                    if total_per_file[i] != len(y[ig]):
-                        sys.exit("ERROR: sanity check on number of samples failed")
-                # print("start=" + str(start) + " end=" + str(end)
-                #  + " diff=" + str(end[ig]-start[ig]) + "=" + str(total_per_file[i]))
-
-                for j in range(tot_fea):
-                    filename_j = trafile + "_{0}_reordered.npy".format(j)
-                    fj = np.load(filename_j, mmap_mode='r+')
-                    for ig in range(group_size):
-                        if j < tar_fea:
-                            fj[indices[start[ig]:end[ig]]] = y[ig]
-                        elif tar_fea <= j and j < tad_fea:
-                            fj[indices[start[ig]:end[ig]]] = X_int_t[ig][j - tar_fea, :]
-                        else:
-                            fj[indices[start[ig]:end[ig]]] = X_cat_t[ig][j - tad_fea, :]
-                    del fj
-        else:
-            print("Reordered fea files already exist, skipping ...")
-
-        # check if data already exists
-        recreate_flag = False
-        for i in range(days):
-            filename_i = d_path + npzfile + "_{0}_reordered.npz".format(i)
-            if path.exists(filename_i):
-                print("Using existing " + filename_i)
-            else:
-                recreate_flag = True
-        # split reordered data by files (memmap all reordered files per feature)
-        # on the day boundary del the file object and memmap again
-        if recreate_flag:
-            for ii in range(group_num):
-                # for last may be group_size != group_num, therefore reset it below
-                group_size = file_group[ii + 1] - file_group[ii]
-                X_cat_t= []; X_int_t = []
-                for ig in range(group_size):
-                    i = file_group[ii] + ig
-                    X_int_t.append(np.zeros((den_fea, total_per_file[i])))
-                    X_cat_t.append(np.zeros((spa_fea, total_per_file[i])))
-                y = [0]*group_size
-                start = [0]*group_size
-                end  = [0]*group_size
-
-                for j in range(tot_fea):
-                    filename_j = trafile + "_{0}_reordered.npy".format(j)
-                    fj = np.load(filename_j, mmap_mode='r')
-                    # load a group of files
-                    for ig in range(group_size):
-                        i = file_group[ii] + ig
-                        # setup start and end ranges
-                        start[ig] = offset_per_file[i]
-                        end[ig] = offset_per_file[i + 1]
-                        # load data for the group of files
-                        if j < tar_fea:
-                            y[ig] = fj[start[ig]:end[ig]]
-                        elif tar_fea <= j and j < tad_fea:
-                            X_int_t[ig][j - tar_fea, :] = fj[start[ig]:end[ig]]
-                        else:
-                            X_cat_t[ig][j - tad_fea, :] = fj[start[ig]:end[ig]]
-                    del fj
-
-                for ig in range(group_size):
-                    i = file_group[ii] + ig
-                    filename_i = d_path + npzfile + "_{0}_reordered.npz".format(i)
-                    print("Creating " + filename_i)
-                    np.savez_compressed(
-                        filename_i,
-                        X_cat=np.transpose(X_cat_t[ig]),  # transpose of the data
-                        X_int=np.transpose(X_int_t[ig]),  # transpose of the data
-                        y=y[ig],
-                    )
-        else:
-            print("Reordered day files already exist, skipping ...")
-        '''
-        '''
-        # Approach 3: group features
-        # check if data already exists
-        group_fea = 5  # e.g. 8, 5 or 4
-        group_num = tot_fea // group_fea
-        if tot_fea % group_fea != 0:  # sanity check
-            sys.exit("ERROR: the group_fea must divided tot_fea evenly.")
-        recreate_flag = False
-        for jn in range(group_num):
-            filename_j = trafile + "_{0}_reordered{1}.npy".format(
-                jn, group_fea
-            )
-            if path.exists(filename_j):
-                print("Using existing " + filename_j)
-            else:
-                recreate_flag = True
-        # load, reorder and concatenate data (memmap all reordered files per feature)
-        if recreate_flag:
-            # init reordered files (.npy appended automatically)
-            z = np.zeros((group_fea, total_count))
-            for jn in range(group_num):
-                filename_j = trafile + "_{0}_reordered{1}".format(
-                    jn, group_fea
-                )
-                np.save(filename_j, z)
-                print("Creating " + filename_j)
-
-            for i in range(days):
-                filename_i = d_path + npzfile + "_{0}_processed.npz".format(i)
-                with np.load(filename_i) as data:
-                    X_cat_t = np.transpose(data["X_cat"])
-                    X_int_t = np.transpose(data["X_int"])
-                    y = data["y"]
-                size = len(y)
-                # sanity check
-                if total_per_file[i] != size:
-                    sys.exit("ERROR: sanity check on number of samples failed")
-                # setup start and end ranges
-                start = offset_per_file[i]
-                end = offset_per_file[i + 1]
-                # print(filename_i)
-                # print("start=" + str(start) + " end=" + str(end)
-                #      + " diff=" + str(end - start) + "=" + str(total_per_file[i]))
-
-                for jn in range(group_num):
-                    filename_j = trafile + "_{0}_reordered{1}.npy".format(
-                        jn, group_fea
-                    )
-                    fj = np.load(filename_j, mmap_mode='r+')
-                    for jg in range(group_fea):
-                        j = jn * group_fea + jg
-                        # print("j=" + str(j) + " jn=" + str(jn) + " jg=" + str(jg))
-                        if j < tar_fea:
-                            fj[jg, indices[start:end]] = y
-                        elif tar_fea <= j and j < tad_fea:
-                            fj[jg, indices[start:end]] = X_int_t[j - tar_fea, :]
-                        else:
-                            fj[jg, indices[start:end]] = X_cat_t[j - tad_fea, :]
-                    del fj
-        else:
-            print("Reordered fea files already exist, skipping ...")
-
-        # check if data already exists
-        recreate_flag = False
-        for i in range(days):
-            filename_i = d_path + npzfile + "_{0}_reordered.npz".format(i)
-            if path.exists(filename_i):
-                print("Using existing" + filename_i)
-            else:
-                recreate_flag = True
-        # split reordered data by files (memmap all reordered files per feature)
-        # on the day boundary del the file object and memmap again
-        if recreate_flag:
-            for i in range(days):
-                filename_i = d_path + npzfile + "_{0}_reordered.npz".format(i)
-                size = total_per_file[i]
-                X_int_t = np.zeros((den_fea, size))
-                X_cat_t = np.zeros((spa_fea, size))
-                # setup start and end ranges
-                start = offset_per_file[i]
-                end = offset_per_file[i + 1]
-                print("Creating " + filename_i)
-                # print("start=" + str(start) + " end=" + str(end)
-                #      + " diff=" + str(end - start) + "=" + str(total_per_file[i]))
-
-                for jn in range(group_num):
-                    filename_j = trafile + "_{0}_reordered{1}.npy".format(
-                        jn, group_fea
-                    )
-                    fj = np.load(filename_j, mmap_mode='r')
-                    for jg in range(group_fea):
-                        j = jn * group_fea + jg
-                        # print("j=" + str(j) + " jn=" + str(jn) + " jg=" + str(jg))
-                        if j < tar_fea:
-                            y = fj[jg, start:end]
-                        elif tar_fea <= j and j < tad_fea:
-                            X_int_t[j - tar_fea, :] = fj[jg, start:end]
-                        else:
-                            X_cat_t[j - tad_fea, :] = fj[jg, start:end]
-                    del fj
-
-                np.savez_compressed(
-                    filename_i,
-                    X_cat=np.transpose(X_cat_t),  # transpose of the data
-                    X_int=np.transpose(X_int_t),  # transpose of the data
-                    y=y,
-                )
-
-        else:
-            print("Reordered day files already exist, skipping ...")
-        '''
 
         # Approach 4: Fisher-Yates-Rao (FYR) shuffle algorithm
         # 1st pass of FYR shuffle
@@ -702,26 +289,6 @@ def concatCriteoAdData(
                     X_int=fj_d[indices, :],
                     y=fj_y[indices],
                 )
-
-        '''
-        # sanity check (under no reordering norms should be zero)
-        for i in range(days):
-            filename_i_o = npzfile + "_{0}_processed.npz".format(i)
-            print(filename_i_o)
-            with np.load(filename_i_o) as data_original:
-                X_cat_o = data_original["X_cat"]
-                X_int_o = data_original["X_int"]
-                y_o = data_original["y"]
-            filename_i_r = npzfile + "_{0}_reordered.npz".format(i)
-            print(filename_i_r)
-            with np.load(filename_i_r) as data_reordered:
-                X_cat_r = data_reordered["X_cat"]
-                X_int_r = data_reordered["X_int"]
-                y_r = data_reordered["y"]
-            print(np.linalg.norm(y_o - y_r))
-            print(np.linalg.norm(X_int_o - X_int_r))
-            print(np.linalg.norm(X_cat_o - X_cat_r))
-        '''
 
     else:
         print("Concatenating multiple days into %s.npz file" % str(d_path + o_filename))
@@ -896,12 +463,6 @@ def getCriteoAdData(
     # Output:
     #   o_file (str): output file path
 
-    def logPerfMeasurement(name):
-        end_time = time.time()
-        print(f"[{name}] elapsed {end_time - logPerfMeasurement.start_time}", file=sys.stderr)
-        logPerfMeasurement.start_time = end_time
-    logPerfMeasurement.start_time = time.time()
-
     #split the datafile into path and filename
     lstr = datafile.split("/")
     d_path = "/".join(lstr[0:-1]) + "/"
@@ -980,14 +541,37 @@ def getCriteoAdData(
             split,
             num_data_in_split,
     ):
+
+        def printTypesDataFrame(x, seriesName):
+            print(f"####################Printing types of series {seriesName}###################", file = sys.stderr)
+            for column in x:
+                types = set()
+                for val in x[column]:
+                    if type(val) not in types:
+                        types.add(type(val))
+                print(f"column{column}: ", file = sys.stderr)
+                print(types, file = sys.stderr)
+
+
+        def printTypesSeries(x, seriesName):
+            print(f"######################{seriesName}######################", file=sys.stderr)
+            types = set()
+            for val in x:
+                types.add(type(val))
+            print(types, file = sys.stderr)
+
+        logPerfMeasurement("process_one_file starting")
         y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
         X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
         X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
 
         i = 0
-        df = pandas.read_csv(datfile, sep="\t", header=None)
+        df = pandas.read_csv(datfile, sep="\t", header=None, dtype=np.str, engine='c')
+        logPerfMeasurement("process_one_file read csv")
 
-        targets = df[0]
+#        printTypesDataFrame(df, "df")
+
+        targets = df[0].astype(dtype=np.int32, copy=False)
         rand_u = np.random.uniform(low=0.0, high=1.00, size=num_data_in_split)
         if sub_sample_rate != 0:
             rand_booleans = rand_u < sub_sample_rate
@@ -995,21 +579,28 @@ def getCriteoAdData(
             rand_booleans = np.full(num_data_in_split, True, dtype=bool)
         keep_rows = ((targets > 0) | rand_booleans)
         df = df.loc[keep_rows]
+        logPerfMeasurement("process_one_file drop random")
 
         y = df[0]
+#        printTypesSeries(y, "y")
         # Assume there were no Nans in the original data, so only nans are
         # from missing values
-        y.fillna(0, inplace=True)
-        X_int = df.loc[:, 1:13].fillna(0)
-        X_int.astype(dtype=np.int32, copy=False)
+        y.fillna("0", inplace=True)
+        y = y.astype(dtype=np.int32, copy=False)
+#        printTypesSeries(y, "y")
+        X_int = df.loc[:, 1:13].fillna("0")
+        X_int = X_int.astype(dtype=np.int32, copy=False)
         X_cat = df.loc[:, 14:39].fillna("0")
+#        printTypesDataFrame(X_cat, "X_cat")
+
         if max_ind_range > 0:
             X_cat = X_cat.applymap(lambda x: int(x, 16) % max_ind_range if type(x) == type("") else x)
             X_cat = X_cat.astype(dtype=np.int32, copy=False)
         else:
-            X_cat = X_cat.applymap(lambda x: int(x, 16) if type(x) == type("") else x)
+            X_cat = X_cat.applymap(lambda x: int(x, 16))
             X_cat = X_cat.astype(dtype=np.int32, copy=False)
         d = {}
+        logPerfMeasurement("process_one_file applymap")
         for j in range(26):
             d[j + 14] = j
         X_cat.rename(columns=d, inplace=True)
@@ -1018,6 +609,7 @@ def getCriteoAdData(
             for elem in uniques:
                 convertDicts[j][elem] = 1
             print(convertDicts[j])
+        logPerfMeasurement("process_one_file convert-dicts stuff")
 
 
         filename_s = npzfile + "_{0}.npz".format(split)
@@ -1031,6 +623,7 @@ def getCriteoAdData(
                 y=y,
             )
             print("\nSaved " + npzfile + "_{0}.npz!".format(split))
+        logPerfMeasurement("process_one_file save compressed")
         return i
 
     # create all splits (reuse existing files if possible)
