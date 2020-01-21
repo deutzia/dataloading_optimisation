@@ -46,14 +46,31 @@ from os import path
 
 import numpy as np
 import time
-import pandas
-
+import dask.dataframe as dd
 
 def logPerfMeasurement(name):
     end_time = time.time()
     print(f"[{name}] elapsed {end_time - logPerfMeasurement.start_time}", file=sys.stderr)
     logPerfMeasurement.start_time = end_time
 logPerfMeasurement.start_time = time.time()
+
+def printTypesDataFrame(x, seriesName):
+    print(f"####################Printing types of series {seriesName}###################", file = sys.stderr)
+    for column in x:
+        types = set()
+        for val in x[column]:
+            if type(val) not in types:
+                types.add(type(val))
+        print(f"column{column}: ", file = sys.stderr)
+        print(types, file = sys.stderr)
+
+
+def printTypesSeries(x, seriesName):
+    print(f"######################{seriesName}######################", file=sys.stderr)
+    types = set()
+    for val in x:
+        types.add(type(val))
+    print(types, file = sys.stderr)
 
 
 def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_counts):
@@ -542,65 +559,40 @@ def getCriteoAdData(
             num_data_in_split,
     ):
 
-        def printTypesDataFrame(x, seriesName):
-            print(f"####################Printing types of series {seriesName}###################", file = sys.stderr)
-            for column in x:
-                types = set()
-                for val in x[column]:
-                    if type(val) not in types:
-                        types.add(type(val))
-                print(f"column{column}: ", file = sys.stderr)
-                print(types, file = sys.stderr)
-
-
-        def printTypesSeries(x, seriesName):
-            print(f"######################{seriesName}######################", file=sys.stderr)
-            types = set()
-            for val in x:
-                types.add(type(val))
-            print(types, file = sys.stderr)
-
-        logPerfMeasurement("process_one_file starting")
         y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
         X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
         X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
 
         i = 0
-        df = pandas.read_csv(datfile, sep="\t", header=None, dtype=np.str, engine='c')
-        logPerfMeasurement("process_one_file read csv")
+        df = dd.read_csv(datfile, sep="\t", header=None, dtype=np.str, engine='c')
 
-#        printTypesDataFrame(df, "df")
-
-        targets = df[0].astype(dtype=np.int32, copy=False)
+        targets = df[0].astype(dtype=np.int32)
         rand_u = np.random.uniform(low=0.0, high=1.00, size=num_data_in_split)
         if sub_sample_rate != 0:
             rand_booleans = rand_u < sub_sample_rate
         else:
             rand_booleans = np.full(num_data_in_split, True, dtype=bool)
+        targets = targets.compute()
         keep_rows = ((targets > 0) | rand_booleans)
-        df = df.loc[keep_rows]
-        logPerfMeasurement("process_one_file drop random")
+        df = df[keep_rows]
+        df = df.compute()
 
         y = df[0]
-#        printTypesSeries(y, "y")
         # Assume there were no Nans in the original data, so only nans are
         # from missing values
-        y.fillna("0", inplace=True)
-        y = y.astype(dtype=np.int32, copy=False)
-#        printTypesSeries(y, "y")
+        y.fillna("0")
+        y = y.astype(dtype=np.int32)
         X_int = df.loc[:, 1:13].fillna("0")
-        X_int = X_int.astype(dtype=np.int32, copy=False)
+        X_int = X_int.astype(dtype=np.int32)
         X_cat = df.loc[:, 14:39].fillna("0")
-#        printTypesDataFrame(X_cat, "X_cat")
 
         if max_ind_range > 0:
             X_cat = X_cat.applymap(lambda x: int(x, 16) % max_ind_range if type(x) == type("") else x)
-            X_cat = X_cat.astype(dtype=np.int32, copy=False)
+            X_cat = X_cat.astype(dtype=np.int32)
         else:
             X_cat = X_cat.applymap(lambda x: int(x, 16))
-            X_cat = X_cat.astype(dtype=np.int32, copy=False)
+            X_cat = X_cat.astype(dtype=np.int32)
         d = {}
-        logPerfMeasurement("process_one_file applymap")
         for j in range(26):
             d[j + 14] = j
         X_cat.rename(columns=d, inplace=True)
@@ -609,7 +601,6 @@ def getCriteoAdData(
             for elem in uniques:
                 convertDicts[j][elem] = 1
             print(convertDicts[j])
-        logPerfMeasurement("process_one_file convert-dicts stuff")
 
 
         filename_s = npzfile + "_{0}.npz".format(split)
@@ -623,7 +614,6 @@ def getCriteoAdData(
                 y=y,
             )
             print("\nSaved " + npzfile + "_{0}.npz!".format(split))
-        logPerfMeasurement("process_one_file save compressed")
         return i
 
     # create all splits (reuse existing files if possible)
