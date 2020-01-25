@@ -55,6 +55,13 @@ def logPerfMeasurement(name):
     logPerfMeasurement.start_time = end_time
 logPerfMeasurement.start_time = time.time()
 
+def save_df(df, filename, key, mode='a'):
+    df.to_hdf(filename, key, mode=mode, complib='blosc')
+    # df.to_parquet(filename)
+
+def read_df(filename, key):
+    return pandas.read_hdf(filename, key)
+
 
 def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_counts):
     # Process Kaggle Display Advertising Challenge or Terabyte Dataset
@@ -69,32 +76,48 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
 
     # process data if not all files exist
     for i in range(split):
-        filename_i = npzfile + "_{0}_processed.npz".format(i)
+        filename_i = npzfile + "_{0}_processed.hdf".format(i)
 
         if path.exists(filename_i):
             print("Using existing " + filename_i, end="\r")
         else:
-            with np.load(npzfile + "_{0}.npz".format(i)) as data:
-                # categorical features
-                # Approach 2a: using pre-computed dictionaries
-                X_cat_t_original = data["X_cat"].transpose()
-                X_cat_t = np.zeros(X_cat_t_original.shape)
-                for j in range(26):
-                    for k, x in enumerate(X_cat_t_original[j, :]):
-                        X_cat_t[j, k] = convertDicts[j][x]
-                # continuous features
-                X_int = data["X_int"]
-                X_int[X_int < 0] = 0
-                # targets
-                y = data["y"]
+            # with np.load(npzfile + "_{0}.npz".format(i)) as data:
+            #     # categorical features
+            #     # Approach 2a: using pre-computed dictionaries
+            #     X_cat_t_original = data["X_cat"].transpose()
+            #     X_cat_t = np.zeros(X_cat_t_original.shape)
+            #     for j in range(26):
+            #         for k, x in enumerate(X_cat_t_original[j, :]):
+            #             X_cat_t[j, k] = convertDicts[j][x]
+            #     # continuous features
+            #     X_int = data["X_int"]
+            #     X_int[X_int < 0] = 0
+            #     # targets
+            #     y = data["y"]
+
+            # TODO determine whether it is better to transpose here
+
+            X_cat = read_df(npzfile + "_{0}.hdf".format(i), 'X_cat')
+            X_int = read_df(npzfile + "_{0}.hdf".format(i), 'X_int')
+            y = read_df(npzfile + "_{0}.hdf".format(i), 'y')
+
+            def process_row(row):
+                print(row)
+                for i in range(26):
+                    row[i] = convertDicts[i][row[i]] if row[i] != 0 else 0
+                return row
+
+            X_cat.apply(process_row, axis=1)
 
             np.savez_compressed(
                 filename_i,
                 # X_cat = X_cat,
-                X_cat=np.transpose(X_cat_t),  # transpose of the data
+                X_cat=X_cat,  # transpose of the data
                 X_int=X_int,
                 y=y,
             )
+
+            
             print("Processed " + filename_i, end="\r")
     print("")
     # sanity check (applicable only if counts have been pre-computed & are re-computed)
@@ -117,7 +140,8 @@ def concatCriteoAdData(
         total_per_file,
         total_count,
         memory_map,
-        o_filename
+        o_filename,
+        counts
 ):
     # Concatenates different days and saves the result.
     #
@@ -307,9 +331,9 @@ def concatCriteoAdData(
                     y = np.concatenate((y, data["y"]))
             print("Loaded day:", i, "y = 1:", len(y[y == 1]), "y = 0:", len(y[y == 0]))
 
-        with np.load(d_path + d_file + "_fea_count.npz") as data:
-            counts = data["counts"]
-        print("Loaded counts!")
+        # with np.load(d_path + d_file + "_fea_count.npz") as data:
+        #     counts = data["counts"]
+        # print("Loaded counts!")
 
         np.savez_compressed(
             d_path + o_filename + ".npz",
@@ -322,124 +346,124 @@ def concatCriteoAdData(
     return d_path + o_filename + ".npz"
 
 
-def transformCriteoAdData(X_cat, X_int, y, days, data_split, randomize, total_per_file):
-    # Transforms Criteo Kaggle or terabyte data by applying log transformation
-    # on dense features and converting everything to appropriate tensors.
-    #
-    # Inputs:
-    #     X_cat (ndarray): array of integers corresponding to preprocessed
-    #                      categorical features
-    #     X_int (ndarray): array of integers corresponding to dense features
-    #     y (ndarray):     array of bool corresponding to labels
-    #     data_split(str): flag for splitting dataset into training/validation/test
-    #                      sets
-    #     randomize (str): determines randomization scheme
-    #         "none": no randomization
-    #         "day": randomizes each day"s data (only works if split = True)
-    #         "total": randomizes total dataset
-    #
-    # Outputs:
-    #     if split:
-    #         X_cat_train (tensor): sparse features for training set
-    #         X_int_train (tensor): dense features for training set
-    #         y_train (tensor): labels for training set
-    #         X_cat_val (tensor): sparse features for validation set
-    #         X_int_val (tensor): dense features for validation set
-    #         y_val (tensor): labels for validation set
-    #         X_cat_test (tensor): sparse features for test set
-    #         X_int_test (tensor): dense features for test set
-    #         y_test (tensor): labels for test set
-    #     else:
-    #         X_cat (tensor): sparse features
-    #         X_int (tensor): dense features
-    #         y (tensor): label
+# def transformCriteoAdData(X_cat, X_int, y, days, data_split, randomize, total_per_file):
+#     # Transforms Criteo Kaggle or terabyte data by applying log transformation
+#     # on dense features and converting everything to appropriate tensors.
+#     #
+#     # Inputs:
+#     #     X_cat (ndarray): array of integers corresponding to preprocessed
+#     #                      categorical features
+#     #     X_int (ndarray): array of integers corresponding to dense features
+#     #     y (ndarray):     array of bool corresponding to labels
+#     #     data_split(str): flag for splitting dataset into training/validation/test
+#     #                      sets
+#     #     randomize (str): determines randomization scheme
+#     #         "none": no randomization
+#     #         "day": randomizes each day"s data (only works if split = True)
+#     #         "total": randomizes total dataset
+#     #
+#     # Outputs:
+#     #     if split:
+#     #         X_cat_train (tensor): sparse features for training set
+#     #         X_int_train (tensor): dense features for training set
+#     #         y_train (tensor): labels for training set
+#     #         X_cat_val (tensor): sparse features for validation set
+#     #         X_int_val (tensor): dense features for validation set
+#     #         y_val (tensor): labels for validation set
+#     #         X_cat_test (tensor): sparse features for test set
+#     #         X_int_test (tensor): dense features for test set
+#     #         y_test (tensor): labels for test set
+#     #     else:
+#     #         X_cat (tensor): sparse features
+#     #         X_int (tensor): dense features
+#     #         y (tensor): label
 
-    # define initial set of indices
-    indices = np.arange(len(y))
+#     # define initial set of indices
+#     indices = np.arange(len(y))
 
-    # create offset per file
-    offset_per_file = np.array([0] + [x for x in total_per_file])
-    for i in range(days):
-        offset_per_file[i + 1] += offset_per_file[i]
+#     # create offset per file
+#     offset_per_file = np.array([0] + [x for x in total_per_file])
+#     for i in range(days):
+#         offset_per_file[i + 1] += offset_per_file[i]
 
-    # split dataset
-    if data_split == 'train':
-        indices = np.array_split(indices, offset_per_file[1:-1])
+#     # split dataset
+#     if data_split == 'train':
+#         indices = np.array_split(indices, offset_per_file[1:-1])
 
-        # randomize train data (per day)
-        if randomize == "day":  # or randomize == "total":
-            for i in range(len(indices) - 1):
-                indices[i] = np.random.permutation(indices[i])
-            print("Randomized indices per day ...")
+#         # randomize train data (per day)
+#         if randomize == "day":  # or randomize == "total":
+#             for i in range(len(indices) - 1):
+#                 indices[i] = np.random.permutation(indices[i])
+#             print("Randomized indices per day ...")
 
-        train_indices = np.concatenate(indices[:-1])
-        test_indices = indices[-1]
-        test_indices, val_indices = np.array_split(test_indices, 2)
+#         train_indices = np.concatenate(indices[:-1])
+#         test_indices = indices[-1]
+#         test_indices, val_indices = np.array_split(test_indices, 2)
 
-        print("Defined training and testing indices...")
+#         print("Defined training and testing indices...")
 
-        # randomize train data (across days)
-        if randomize == "total":
-            train_indices = np.random.permutation(train_indices)
-            print("Randomized indices across days ...")
+#         # randomize train data (across days)
+#         if randomize == "total":
+#             train_indices = np.random.permutation(train_indices)
+#             print("Randomized indices across days ...")
 
-        # indices = np.concatenate((train_indices, test_indices))
+#         # indices = np.concatenate((train_indices, test_indices))
 
-        # create training, validation, and test sets
-        X_cat_train = X_cat[train_indices]
-        X_int_train = X_int[train_indices]
-        y_train = y[train_indices]
+#         # create training, validation, and test sets
+#         X_cat_train = X_cat[train_indices]
+#         X_int_train = X_int[train_indices]
+#         y_train = y[train_indices]
 
-        X_cat_val = X_cat[val_indices]
-        X_int_val = X_int[val_indices]
-        y_val = y[val_indices]
+#         X_cat_val = X_cat[val_indices]
+#         X_int_val = X_int[val_indices]
+#         y_val = y[val_indices]
 
-        X_cat_test = X_cat[test_indices]
-        X_int_test = X_int[test_indices]
-        y_test = y[test_indices]
+#         X_cat_test = X_cat[test_indices]
+#         X_int_test = X_int[test_indices]
+#         y_test = y[test_indices]
 
-        print("Split data according to indices...")
+#         print("Split data according to indices...")
 
-        X_cat_train = X_cat_train.astype(np.long)
-        X_int_train = np.log(X_int_train.astype(np.float32) + 1)
-        y_train = y_train.astype(np.float32)
+#         X_cat_train = X_cat_train.astype(np.long)
+#         X_int_train = np.log(X_int_train.astype(np.float32) + 1)
+#         y_train = y_train.astype(np.float32)
 
-        X_cat_val = X_cat_val.astype(np.long)
-        X_int_val = np.log(X_int_val.astype(np.float32) + 1)
-        y_val = y_val.astype(np.float32)
+#         X_cat_val = X_cat_val.astype(np.long)
+#         X_int_val = np.log(X_int_val.astype(np.float32) + 1)
+#         y_val = y_val.astype(np.float32)
 
-        X_cat_test = X_cat_test.astype(np.long)
-        X_int_test = np.log(X_int_test.astype(np.float32) + 1)
-        y_test = y_test.astype(np.float32)
+#         X_cat_test = X_cat_test.astype(np.long)
+#         X_int_test = np.log(X_int_test.astype(np.float32) + 1)
+#         y_test = y_test.astype(np.float32)
 
-        print("Converted to tensors...done!")
+#         print("Converted to tensors...done!")
 
-        return (
-            X_cat_train,
-            X_int_train,
-            y_train,
-            X_cat_val,
-            X_int_val,
-            y_val,
-            X_cat_test,
-            X_int_test,
-            y_test,
-        )
+#         return (
+#             X_cat_train,
+#             X_int_train,
+#             y_train,
+#             X_cat_val,
+#             X_int_val,
+#             y_val,
+#             X_cat_test,
+#             X_int_test,
+#             y_test,
+#         )
 
-    else:
+#     else:
 
-        # randomize data
-        if randomize == "total":
-            indices = np.random.permutation(indices)
-            print("Randomized indices...")
+#         # randomize data
+#         if randomize == "total":
+#             indices = np.random.permutation(indices)
+#             print("Randomized indices...")
 
-        X_cat = X_cat[indices].astype(np.long)
-        X_int = np.log(X_int[indices].astype(np.float32) + 1)
-        y = y[indices].astype(np.float32)
+#         X_cat = X_cat[indices].astype(np.long)
+#         X_int = np.log(X_int[indices].astype(np.float32) + 1)
+#         y = y[indices].astype(np.float32)
 
-        print("Converted to tensors...done!")
+#         print("Converted to tensors...done!")
 
-        return (X_cat, X_int, y, [], [], [], [], [], [])
+#         return (X_cat, X_int, y, [], [], [], [], [], [])
 
 
 def getCriteoAdData(
@@ -532,7 +556,7 @@ def getCriteoAdData(
                     sys.exit("ERROR: Criteo Terabyte Dataset path is invalid; please download from https://labs.criteo.com/2013/12/download-terabyte-click-logs")
     logPerfMeasurement("getCriteoAdData reading data finished")
 
-
+    dict_counter = [0 for _ in range(26)]
     # process a file worth of data and reinitialize data
     # note that a file main contain a single or multiple splits
     def process_one_file(
@@ -561,11 +585,12 @@ def getCriteoAdData(
             print(types, file = sys.stderr)
 
         logPerfMeasurement("process_one_file starting")
-        y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
-        X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
-        X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
+        # y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
+        # X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
+        # X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
 
-        i = 0
+       
+        i = 0 # TODO must return number of samples
         df = pandas.read_csv(datfile, sep="\t", header=None, dtype=np.str, engine='c')
         logPerfMeasurement("process_one_file read csv")
 
@@ -604,17 +629,26 @@ def getCriteoAdData(
         for j in range(26):
             d[j + 14] = j
         X_cat.rename(columns=d, inplace=True)
+
         for j in range(26):
-            uniques = X_cat[j].unique()
-            for elem in uniques:
-                convertDicts[j][elem] = 1
+            # uniques = X_cat[j].unique()
+            
+            for i, elem in enumerate(X_cat[j]): # that way it is faster then with uniques
+                if elem in convertDicts[j]:
+                    X_cat[j][i] = convertDicts[j][elem]
+                else:
+                    convertDicts[j][elem] = dict_counter[j]
+                    X_cat[j][i] = dict_counter[j]
+                    dict_counter[j] += 1
+                    
             print(convertDicts[j])
         logPerfMeasurement("process_one_file convert-dicts stuff")
 
 
-        filename_s = npzfile + "_{0}.npz".format(split)
+        # filename_s = npzfile + "_{0}.npz".format(split)
+        filename_s = npzfile + "_{0}_processed.npz".format(split)
         if path.exists(filename_s):
-            print("\nSkip existing " + filename_s)
+            print("\nSkip existing " + filename_pd)
         else:
             np.savez_compressed(
                 filename_s,
@@ -622,9 +656,13 @@ def getCriteoAdData(
                 X_cat=X_cat,
                 y=y,
             )
-            print("\nSaved " + npzfile + "_{0}.npz!".format(split))
-        logPerfMeasurement("process_one_file save compressed")
-        return i
+            print("\nSaved " + npzfile + "_{0}.hdf!".format(split))
+            logPerfMeasurement("process_one_file save compressed numpy")
+        #     save_df(X_int, filename_pd, 'X_int')
+        #     save_df(X_cat, filename_pd, 'X_cat')
+        #     save_df(y, filename_pd, 'y')
+        # logPerfMeasurement("process_one_file save pandas")
+        return num_data_in_split
 
     # create all splits (reuse existing files if possible)
     recreate_flag = False
@@ -658,37 +696,38 @@ def getCriteoAdData(
     print("Divided into days/splits:\n", total_per_file)
 
     # dictionary files
-    counts = np.zeros(26, dtype=np.int32)
-    if recreate_flag:
-        # create dictionaries
-        for j in range(26):
-            for i, x in enumerate(convertDicts[j]):
-                convertDicts[j][x] = i
-            dict_file_j = d_path + d_file + "_fea_dict_{0}.npz".format(j)
-            if not path.exists(dict_file_j):
-                np.savez_compressed(
-                    dict_file_j,
-                    unique=np.array(list(convertDicts[j]), dtype=np.int32)
-                )
-            counts[j] = len(convertDicts[j])
-        # store (uniques and) counts
-        count_file = d_path + d_file + "_fea_count.npz"
-        if not path.exists(count_file):
-            np.savez_compressed(count_file, counts=counts)
-    else:
-        # create dictionaries (from existing files)
-        for j in range(26):
-            with np.load(d_path + d_file + "_fea_dict_{0}.npz".format(j)) as data:
-                unique = data["unique"]
-            for i, x in enumerate(unique):
-                convertDicts[j][x] = i
-        # load (uniques and) counts
-        with np.load(d_path + d_file + "_fea_count.npz") as data:
-            counts = data["counts"]
-    logPerfMeasurement(f"getCriteoAdData reporting and saving total finished")
+    counts = [len(convertDicts[j]) for j in range(26)]
+
+    # if recreate_flag:
+    #     # create dictionaries
+    #     for j in range(26):
+    #         for i, x in enumerate(convertDicts[j]):
+    #             convertDicts[j][x] = i
+    #         dict_file_j = d_path + d_file + "_fea_dict_{0}.npz".format(j)
+    #         if not path.exists(dict_file_j):
+    #             np.savez_compressed(
+    #                 dict_file_j,
+    #                 unique=np.array(list(convertDicts[j]), dtype=np.int32)
+    #             )
+    #         counts[j] = len(convertDicts[j])
+    #     # store (uniques and) counts
+    #     count_file = d_path + d_file + "_fea_count.npz"
+    #     if not path.exists(count_file):
+    #         np.savez_compressed(count_file, counts=counts)
+    # else:
+    #     # create dictionaries (from existing files)
+    #     for j in range(26):
+    #         with np.load(d_path + d_file + "_fea_dict_{0}.npz".format(j)) as data:
+    #             unique = data["unique"]
+    #         for i, x in enumerate(unique):
+    #             convertDicts[j][x] = i
+    #     # load (uniques and) counts
+    #     with np.load(d_path + d_file + "_fea_count.npz") as data:
+    #         counts = data["counts"]
+    # logPerfMeasurement(f"getCriteoAdData reporting and saving total finished")
 
     # process all splits
-    processCriteoAdData(d_path, d_file, npzfile, days, convertDicts, counts)
+    # processCriteoAdData(d_path, d_file, npzfile, days, convertDicts, counts)
     logPerfMeasurement(f"getCriteoAdData calling processCriteoAdData")
     o_file = concatCriteoAdData(
         d_path,
@@ -701,7 +740,8 @@ def getCriteoAdData(
         total_per_file,
         total_count,
         memory_map,
-        o_filename
+        o_filename,
+        counts
     )
     logPerfMeasurement(f"getCriteoAdData calling concatCriteoAdData")
 
