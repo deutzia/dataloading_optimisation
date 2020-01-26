@@ -605,8 +605,7 @@ def getCriteoAdData(
             d[j + 14] = j
         X_cat.rename(columns=d, inplace=True)
         for j in range(26):
-            uniques = X_cat[j].unique()
-            for elem in uniques:
+            for elem in X_cat[j]:
                 convertDicts[j][elem] = 1
             print(convertDicts[j])
         logPerfMeasurement("process_one_file convert-dicts stuff")
