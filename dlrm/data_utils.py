@@ -624,7 +624,7 @@ def getCriteoAdData(
             )
             print("\nSaved " + npzfile + "_{0}.npz!".format(split))
         logPerfMeasurement("process_one_file save compressed")
-        return i
+        return len(X_cat)
 
     # create all splits (reuse existing files if possible)
     recreate_flag = False
