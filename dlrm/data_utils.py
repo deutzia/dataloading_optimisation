@@ -55,6 +55,12 @@ def logPerfMeasurement(name):
     logPerfMeasurement.start_time = end_time
 logPerfMeasurement.start_time = time.time()
 
+def save_df(df, filename, key, mode='a'):
+    df.to_hdf(filename, key, mode=mode)
+
+def read_df(filename, key):
+    return pandas.read_hdf(filename, key)
+
 
 def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_counts):
     # Process Kaggle Display Advertising Challenge or Terabyte Dataset
@@ -74,24 +80,36 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
         if path.exists(filename_i):
             print("Using existing " + filename_i, end="\r")
         else:
-            with np.load(npzfile + "_{0}.npz".format(i)) as data:
-                # categorical features
-                # Approach 2a: using pre-computed dictionaries
-                X_cat_t_original = data["X_cat"].transpose()
-                X_cat_t = np.zeros(X_cat_t_original.shape)
-                for j in range(26):
-                    for k, x in enumerate(X_cat_t_original[j, :]):
-                        X_cat_t[j, k] = convertDicts[j][x]
-                # continuous features
-                X_int = data["X_int"]
-                X_int[X_int < 0] = 0
-                # targets
-                y = data["y"]
+            # with np.load(npzfile + "_{0}.npz".format(i)) as data:
+            #     # categorical features
+            #     # Approach 2a: using pre-computed dictionaries
+            #     X_cat_t_original = data["X_cat"].transpose()
+            #     X_cat_t = np.zeros(X_cat_t_original.shape)
+            #     for j in range(26):
+            #         for k, x in enumerate(X_cat_t_original[j, :]):
+            #             X_cat_t[j, k] = convertDicts[j][x]
+            #     # continuous features
+            #     X_int = data["X_int"]
+            #     X_int[X_int < 0] = 0
+            #     # targets
+            #     y = data["y"]
+
+            X_cat = read_df(npzfile + "_{0}.npz".format(i), 'X_cat')
+            X_int = read_df(npzfile + "_{0}.npz".format(i), 'X_int')
+            y = read_df(npzfile + "_{0}.npz".format(i), 'y')
+
+
+            for j in range(26):
+                for k, x in enumerate(X_cat[j]):
+                    X_cat[j][k] = convertDicts[j][x]
+
+            X_int.applymap(lambda x: max(x, 0))
+
 
             np.savez_compressed(
                 filename_i,
                 # X_cat = X_cat,
-                X_cat=np.transpose(X_cat_t),  # transpose of the data
+                X_cat=X_cat,  # transpose of the data
                 X_int=X_int,
                 y=y,
             )
@@ -615,12 +633,17 @@ def getCriteoAdData(
         if path.exists(filename_s):
             print("\nSkip existing " + filename_s)
         else:
-            np.savez_compressed(
-                filename_s,
-                X_int=X_int,
-                X_cat=X_cat,
-                y=y,
-            )
+            # np.savez_compressed(
+            #     filename_s,
+            #     X_int=X_int,
+            #     X_cat=X_cat,
+            #     y=y,
+            # )
+
+            save_df(X_cat, filename_s, 'X_cat')
+            save_df(X_int, filename_s, 'X_int')
+            save_df(y, filename_s, 'y')
+
             print("\nSaved " + npzfile + "_{0}.npz!".format(split))
         logPerfMeasurement("process_one_file save compressed")
         return len(X_cat)
