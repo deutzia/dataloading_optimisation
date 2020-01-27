@@ -98,10 +98,14 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
             X_int = read_df(npzfile + "_{0}.npz".format(i), 'X_int')
             y = read_df(npzfile + "_{0}.npz".format(i), 'y')
 
+            X_cat = X_cat.transpose(copy=False)
+
+            # print(X_cat.values.flags, file=sys.stderr)
 
             for j in range(26):
-                for k, x in enumerate(X_cat[j]):
-                    X_cat[j][k] = convertDicts[j][x]
+                tmp = X_cat.loc[j]
+                for k, x in enumerate(tmp):
+                    tmp[k] = convertDicts[j][x]
 
             X_int.applymap(lambda x: max(x, 0))
 
@@ -109,7 +113,7 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
             np.savez_compressed(
                 filename_i,
                 # X_cat = X_cat,
-                X_cat=X_cat,  # transpose of the data
+                X_cat=X_cat.transpose(copy=False),  # transpose of the data
                 X_int=X_int,
                 y=y,
             )
