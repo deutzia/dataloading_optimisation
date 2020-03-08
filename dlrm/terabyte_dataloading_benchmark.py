@@ -15,7 +15,7 @@ def launch_dataloading(basic_path, datafile, data_utils_module):
         data_split="train",
         raw_path=f"{basic_path}/day",
         pro_data="",
-        memory_map=False
+        memory_map=True
     )
 
 
