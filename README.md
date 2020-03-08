@@ -24,3 +24,9 @@ Contents:
 - put `day_0_repr_sample_*` files in directory `/dlrm/test_data/`,
 
 - go to `/dlrm/` directory and run `python3 terabyte_dataloading_benchmark.py`.
+
+
+## Comparing outputs of the current data_utils and the tgrel's orignal one
+
+To compare outputs of the current ./dlrm/data_utils.py and original the tgrel's original one (./dlrm/tgrel_data_utils.py)
+run `python3 ../scripts/cmp_data_utils_outputs.py` in `/dlrm/`
