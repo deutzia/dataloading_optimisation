@@ -48,12 +48,16 @@ import numpy as np
 import time
 import pandas
 
+np.random.seed(23)
 
 def logPerfMeasurement(name):
     end_time = time.time()
     print(f"[{name}] elapsed {end_time - logPerfMeasurement.start_time}", file=sys.stderr)
     logPerfMeasurement.start_time = end_time
 logPerfMeasurement.start_time = time.time()
+
+def printerr(s):
+    print(s, file=sys.stderr)
 
 def save_df(df, filename, key, mode='a'):
     df.to_hdf(filename, key, mode=mode)
@@ -109,14 +113,18 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
 
             X_int.applymap(lambda x: max(x, 0))
 
+            # np.savez_compressed(
+            #     filename_i,
+            #     # X_cat = X_cat,
+            #     X_cat=X_cat.transpose(copy=False),  # transpose of the data
+            #     X_int=X_int,
+            #     y=y,
+            # )
 
-            np.savez_compressed(
-                filename_i,
-                # X_cat = X_cat,
-                X_cat=X_cat.transpose(copy=False),  # transpose of the data
-                X_int=X_int,
-                y=y,
-            )
+            save_df(X_cat.transpose(copy=False), filename_i, 'X_cat')
+            save_df(X_int, filename_i, 'X_int')
+            save_df(y, filename_i, 'y')
+
             print("Processed " + filename_i, end="\r")
     print("")
     # sanity check (applicable only if counts have been pre-computed & are re-computed)
@@ -198,11 +206,19 @@ def concatCriteoAdData(
             total_counter = [0] * days
             for i in range(days):
                 filename_i = npzfile + "_{0}_processed.npz".format(i)
-                with np.load(filename_i) as data:
-                    X_cat = data["X_cat"]
-                    X_int = data["X_int"]
-                    y = data["y"]
-                size = len(y)
+                # with np.load(filename_i) as data:
+                #     X_cat = data["X_cat"]
+                #     X_int = data["X_int"]
+                #     y = data["y"]
+
+                X_cat = read_df(filename_i, 'X_cat')
+                X_int = read_df(filename_i, 'X_int')
+                y = read_df(filename_i, 'y')
+
+
+                size = len(y) # TODO check if it is ok
+
+
                 # sanity check
                 if total_per_file[i] != size:
                     sys.exit("ERROR: sanity check on number of samples failed")
@@ -259,7 +275,9 @@ def concatCriteoAdData(
                     #       + " end - start=" + str(end - start) + " "
                     #       + str(fj_y[start:end].shape) + " "
                     #       + str(len(buckets[j])))
-                    fj_y[start:end] = y[buckets[j]]
+                    a = y[buckets[j]]
+                    fj_y[start:end] = y.iloc[buckets[j]]
+
                     del fj_y
                     # dense buckets
                     fj_d = np.load(filename_j_d, mmap_mode='r+')
@@ -267,7 +285,7 @@ def concatCriteoAdData(
                     #       + " end - start=" + str(end - start) + " "
                     #       + str(fj_d[start:end, :].shape) + " "
                     #       + str(len(buckets[j])))
-                    fj_d[start:end, :] = X_int[buckets[j], :]
+                    fj_d[start:end, :] = X_int.iloc[buckets[j], :]
                     del fj_d
                     # sparse buckets
                     fj_s = np.load(filename_j_s, mmap_mode='r+')
@@ -275,7 +293,7 @@ def concatCriteoAdData(
                     #       + " end - start=" + str(end - start) + " "
                     #       + str(fj_s[start:end, :].shape) + " "
                     #       + str(len(buckets[j])))
-                    fj_s[start:end, :] = X_cat[buckets[j], :]
+                    fj_s[start:end, :] = X_cat.iloc[buckets[j], :]
                     del fj_s
                     # update counters for next step
                     total_counter[j] += counter[j]

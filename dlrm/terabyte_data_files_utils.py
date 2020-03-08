@@ -22,3 +22,6 @@ def clean_old_files(basic_path):
         if path.exists(file_name):
             print(f"removing old file: {file_name}")
             os.remove(file_name)
+
+if __name__ == "__main__":
+    clean_old_files()
