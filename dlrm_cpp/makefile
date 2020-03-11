@@ -2,7 +2,7 @@ COMPILER = clang++
 HOMEDIR = ..
 CNPY = $(HOMEDIR)/cnpy
 CSV_PARSER = $(HOMEDIR)/fast-cpp-csv-parser
-CPPFLAGS = -Wall -Wextra -std=c++17 -O2
+CPPFLAGS = -Wall -Wextra -std=c++17 -O2 -pthread
 INCFLAGS = -I$(CNPY) -I$(CSV_PARSER)
 LINKFLAGS = -L$(CNPY) -lcnpy -lz
 
