@@ -6,8 +6,12 @@
 #include<map>
 #include<string>
 #include<getopt.h>
+#include<unordered_map>
 
-int parse_int(const char *data)
+constexpr uint32_t NUM_INT = 13;
+constexpr uint32_t NUM_CAT = 26;
+
+int32_t parse_int(const char *data)
 {
     //-1 case
     if (*data == '-')
@@ -24,13 +28,13 @@ int parse_int(const char *data)
     return result;
 }
 
-unsigned int parse_cat(const char *data)
+uint32_t parse_cat(const char *data)
 {
     if (data[0] == '\0')
     {
         return 0;
     }
-    unsigned int result = 0;
+    uint32_t result = 0;
     for (int i = 0; i < 8; i++)
     {
         unsigned int data_value = (data[i] - ((data[i] >= '0' && data[i] <= '9') ? '0' : ('a' - 10)));
@@ -126,9 +130,14 @@ int main(int argc, char *argv[])
     io::CSVReader<40, io::trim_chars<>, io::no_quote_escape<'\t'>> in(raw_data_file);
 
     int type;
-    char *x_int[13];
-    char *x_cat[26];
+    char *x_int[NUM_INT];
+    char *x_cat[NUM_CAT];
+    unsigned int new_values[NUM_CAT];
 
+    std::unordered_map<unsigned int, unsigned int> convert_dicts[NUM_CAT];
+    unsigned int counter[NUM_CAT];
+    for (uint32_t i = 0; i < NUM_CAT; ++i)
+        counter[i] = 0;
     while (in.read_row(
             //type
             type,
@@ -145,14 +154,23 @@ int main(int argc, char *argv[])
             x_cat[25]
     ))
     {
-        for (int q = 0; q < 13; q++)
+        for (uint32_t q = 0; q < NUM_INT; q++)
         {
             parse_int(x_int[q]);
             //TODO
         }
-        for (int q = 0; q < 26; q++)
+        for (uint32_t q = 0; q < NUM_CAT; q++)
         {
-            parse_cat(x_cat[q]);
+            uint32_t num = parse_cat(x_cat[q]);
+            if (convert_dicts[q].find(num) == convert_dicts[q].end())
+            {
+                new_values[q] = counter[q];
+                convert_dicts[q][num] = counter[q]++;
+            }
+            else
+            {
+                new_values[q] = convert_dicts[q][num];
+            }
             //TODO
         }
     }
