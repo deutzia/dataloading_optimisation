@@ -1,0 +1,34 @@
+---
+BasedOnStyle: LLVM
+BreakBeforeBraces: Custom
+
+AllowShortBlocksOnASingleLine: 'false'
+AllowShortCaseLabelsOnASingleLine: 'false'
+AllowShortFunctionsOnASingleLine: 'false'
+AllowShortIfStatementsOnASingleLine: 'false'
+AllowShortLoopsOnASingleLine: 'false'
+
+AlwaysBreakTemplateDeclarations: 'true'
+
+BraceWrapping: {
+    AfterClass:      'true'
+    AfterControlStatement: 'true'
+    AfterEnum:       'true'
+    AfterFunction:   'true'
+    AfterNamespace:  'true'
+    AfterObjCDeclaration: 'true'
+    AfterStruct:     'true'
+    AfterUnion:      'true'
+    AfterExternBlock: 'true'
+    BeforeCatch:     'true'
+    BeforeElse:      'true'
+    IndentBraces:    'false'
+    SplitEmptyFunction: 'true'
+    SplitEmptyRecord: 'true'
+    SplitEmptyNamespace: 'true'
+}
+ColumnLimit: '80'
+Standard: Cpp11
+IndentWidth: '4'
+TabWidth: '4'
+UseTab: Never
