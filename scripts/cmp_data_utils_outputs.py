@@ -2,25 +2,9 @@ import sys
 import os
 from os import path
 
-
-# Ensures that the project root path belongs to the paths variable of the launched script
-def ensure_paths():
-    suffix = "dataloading_optimisation/"
-    path = None
-    for p in sys.path:
-        pos = p.find(suffix)
-        if (pos != -1):
-            path = p[:pos + len(suffix)]
-
-    if (path == None):
-        raise Exception("No path containing 'dataloading_optimisation/'")
-    elif (not path in sys.path):
-        sys.path.append(path)
-
-
 if __name__ == "__main__":
-    ensure_paths()
-
+    import importlib
+    importlib.import_module('ensure_paths')
 
 # Ensures that the results of tgrel_data_utils.py for the data_file exist in the files system.
 # It they are absent, they will be created.

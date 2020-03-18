@@ -1,7 +1,10 @@
+if __name__ == "__main__":
+    import importlib
+    importlib.import_module('ensure_paths')
+
 from dlrm import terabyte_test_data_divider
 from dlrm import terabyte_data_files_utils
 from dlrm import data_utils
-
 
 def launch_dataloading(basic_path, datafile, data_utils_module):
     terabyte_data_files_utils.clean_old_files(basic_path)
