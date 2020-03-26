@@ -8,12 +8,17 @@ def file_names(basic_path):
                   f"{basic_path}/day_fea_count.npz"]
 
     for i in range(24):
-        file_names += [f"{basic_path}/day_{i}"]
+        file_names += [f"{basic_path}/day_{i}",
+                       f"{basic_path}/day_{i}.npz",
+                       f"{basic_path}/day_{i}_reordered.npz",
+                       f"{basic_path}/day_{i}_processed.npz",
+                       f"{basic_path}/day_{i}_intermediate_s.npy",
+                       f"{basic_path}/day_{i}_intermediate_y.npy",
+                       f"{basic_path}/day_{i}_intermediate_d.npy"]
 
     for i in range(26):
-        file_names += [f"{basic_path}/day_{i}.npz",
-                       f"{basic_path}/day_fea_dict_{i}.npz",
-                       f"{basic_path}/day_{i}_processed.npz"]
+        file_names += [f"{basic_path}/day_fea_dict_{i}.npz"]
+
     return file_names
 
 
