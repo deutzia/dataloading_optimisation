@@ -8,6 +8,15 @@ if __name__ == "__main__":
 
     importlib.import_module('ensure_paths')
 
+def lacking_results_files(basic_path):
+    from dlrm import terabyte_data_files_utils
+
+    lacking = []
+    for file_name in terabyte_data_files_utils.results_files_names(basic_path):
+        if (not path.exists(file_name)):
+            lacking.append(file_name)
+
+    return lacking
 
 # Ensures that the results of tgrel_data_utils.py for the data_file exist in the files system.
 # It they are absent, they will be created.
@@ -28,8 +37,7 @@ def ensure_tgrel_results_exists(data_file):
     except:
         recreate_tgrel_outputs = True
 
-    recreate_tgrel_outputs |= any(map(lambda file_name: not path.exists(file_name),
-                                      terabyte_data_files_utils.file_names(basic_path)))
+    recreate_tgrel_outputs |= (lacking_results_files(basic_path) != [])
 
     if recreate_tgrel_outputs:
         with open(used_datafile_path, "w+") as f:
@@ -86,6 +94,14 @@ if __name__ == "__main__":
     # Enable stdout and stderr
     sys.stdout = stdout
     sys.stderr = stderr
+
+    lacking_files = lacking_results_files("./test_data")
+    if (lacking_files != []):
+        sys.stderr.write(f"{bcolors.ERR}Results files to check are not created. Missing files:\n")
+        for f in lacking_files:
+            sys.stderr.write(f"{f}\n")
+        sys.stderr.write(f"{bcolors.ENDC}")
+        sys.exit(1)
 
     # Compare results of the data_utils scripts
     tgrel_records = get_records_sorted("./test_data/tgrel")
