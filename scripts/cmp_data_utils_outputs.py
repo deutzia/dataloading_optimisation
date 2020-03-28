@@ -1,10 +1,13 @@
 import sys
 import os
 from os import path
+import bcolors
 
 if __name__ == "__main__":
     import importlib
+
     importlib.import_module('ensure_paths')
+
 
 # Ensures that the results of tgrel_data_utils.py for the data_file exist in the files system.
 # It they are absent, they will be created.
@@ -35,11 +38,37 @@ def ensure_tgrel_results_exists(data_file):
                                                           data_utils_module=tgrel_data_utils)
 
 
+# Loads records from day_{d}_reordered.npz files for all days,
+# transforms the records categorical features from following integers to original hashes
+#   (using day_fea_dict_{i}.npz files)
+# Returns the records sorted.
+def get_records_sorted(basic_path):
+    dict = [[] for i in range(26)]
+
+    for i in range(26):
+        with np.load(f"{basic_path}/day_fea_dict_{i}.npz") as f:
+            dict[i] = f["unique"]
+
+    records = []
+
+    for d in range(24):
+        with np.load(f"{basic_path}/day_{d}_reordered.npz") as f:
+            for (y, x_int, x_cat) in zip(f["y"], f["X_int"], f["X_cat"]):
+                line = [0 for i in range(1 + 13 + 26)]
+                line[0] = int(y)
+                line[1:14] = map(lambda x: int(x), x_int)
+                for j in range(26):
+                    line[j + 14] = dict[j][int(x_cat[j])]
+                records.append(line)
+
+    records.sort()
+    return records
+
+
 if __name__ == "__main__":
     from dlrm import terabyte_dataloading_benchmark
     from dlrm import data_utils
     import numpy as np
-    from npz_diff import npz_equal
 
     # Disable stdout and stderr
     devnull = open(os.devnull, "w")
@@ -49,7 +78,7 @@ if __name__ == "__main__":
     sys.stderr = devnull
 
     # Create data_utils outputs
-    data_file = "./test_data/day_0_repr_sample_1000r"
+    data_file = "./test_data/day_0_repr_sample_24r"
     ensure_tgrel_results_exists(data_file)
     terabyte_dataloading_benchmark.launch_dataloading(basic_path="./test_data", datafile=data_file,
                                                       data_utils_module=data_utils)
@@ -58,10 +87,14 @@ if __name__ == "__main__":
     sys.stdout = stdout
     sys.stderr = stderr
 
-    # Compare dictionaries created by the data_utils scripts
-    equal_results = True
-    for suffix in [f"day_fea_dict_{i}.npz" for i in range(26)]:
-        if not npz_equal(f"./test_data/tgrel/{suffix}", f"./test_data/{suffix}"):
-            equal_results = False
+    # Compare results of the data_utils scripts
+    tgrel_records = get_records_sorted("./test_data/tgrel")
+    records = get_records_sorted("./test_data")
 
-    print(f"The results of data_utils.py and tgrel_data_utils.py are {'' if equal_results else 'NOT '}equal.")
+    equal_results = tgrel_records == records
+
+    color = bcolors.OK if equal_results else bcolors.ERR
+    print(
+        f"{color}The results of data_utils.py and tgrel_data_utils.py for {data_file}"\
+        f"are {'' if equal_results else 'NOT '}equal.{bcolors.ENDC}")
+    sys.exit(not equal_results)
