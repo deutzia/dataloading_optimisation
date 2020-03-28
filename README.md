@@ -30,3 +30,16 @@ Contents:
 
 To compare outputs of the current ./dlrm/data_utils.py and original the tgrel's original one (./dlrm/tgrel_data_utils.py)
 run `python3 ../scripts/cmp_data_utils_outputs.py` in `/dlrm/`
+
+(it defaultly compares results for `day_0_repr_sample_1000r`, which is located in `/dlrm/test_data/`).
+
+If you would like to compare outputs for another data file, type:
+
+`python3 ../scripts/cmp_data_utils_outputs.py <data_file_name>`,
+
+where `<data_file_name>` is one of the following:
+- `day_0_repr_sample_24r`
+- `day_0_repr_sample_1000r`
+- `day_0_repr_sample_small`
+- `day_0_repr_sample_medium`
+- `day_0_repr_sample_big`
