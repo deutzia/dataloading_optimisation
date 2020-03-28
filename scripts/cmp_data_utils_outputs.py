@@ -78,7 +78,7 @@ if __name__ == "__main__":
     sys.stderr = devnull
 
     # Create data_utils outputs
-    data_file = "./test_data/day_0_repr_sample_24r"
+    data_file = "./test_data/day_0_repr_sample_1000r" if len(sys.argv) == 1 else f"./test_data/{sys.argv[1]}"
     ensure_tgrel_results_exists(data_file)
     terabyte_dataloading_benchmark.launch_dataloading(basic_path="./test_data", datafile=data_file,
                                                       data_utils_module=data_utils)
@@ -96,5 +96,5 @@ if __name__ == "__main__":
     color = bcolors.OK if equal_results else bcolors.ERR
     print(
         f"{color}The results of data_utils.py and tgrel_data_utils.py for {data_file}"\
-        f"are {'' if equal_results else 'NOT '}equal.{bcolors.ENDC}")
+        f" are {'' if equal_results else 'NOT '}equal.{bcolors.ENDC}")
     sys.exit(not equal_results)
