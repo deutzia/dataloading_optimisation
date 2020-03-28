@@ -1,3 +1,6 @@
 *.o
 *.d
 main
+test_data/
+cmake-build-debug
+build/

@@ -2,8 +2,7 @@ from itertools import islice
 from os import path
 
 
-def divide_data():
-    datafile = "./test_data/day_0_repr_sample_1000r"
+def divide_data(basic_path, datafile):
     total_count = 0
     if path.exists(datafile):
         print("Reading data from path=%s" % (datafile))
@@ -20,7 +19,7 @@ def divide_data():
 
     input_file = open(str(datafile))
     for i in range(24):
-        output_file = open(f"./test_data/day_{i}", "w")
+        output_file = open(f"{basic_path}/day_{i}", "w")
         line_to_write_count = per_file
         if i == 23:
             line_to_write_count += (total_count % per_file)

@@ -1,0 +1,1 @@
+../scripts/ensure_paths.py

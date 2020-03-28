@@ -8,7 +8,7 @@ LINKFLAGS = -L$(CNPY) -lcnpy -lz
 
 -include $(OBJS:.o=.d)
 
-SRCS = main.cc
+SRCS = main.cc get_criteo_ad_data.cc process_one_file.cc process_criteo_ad_data.cc concat_criteo_ad_data.cc
 OBJS = $(SRCS:.cc=.o)
 
 main: $(OBJS)

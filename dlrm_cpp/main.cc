@@ -1,58 +1,19 @@
-#include <cnpy.h>
-#include <complex>
 #include <cstdlib>
-#include <csv.h>
 #include <getopt.h>
 #include <iostream>
-#include <map>
 #include <string>
-#include <unordered_map>
 
-constexpr uint32_t NUM_INT = 13;
-constexpr uint32_t NUM_CAT = 26;
-
-int32_t parse_int(const char *data)
-{
-    //-1 case
-    if (*data == '-')
-    {
-        return -1;
-    }
-
-    int result = 0;
-    while (*data != '\0')
-    {
-        result = 10 * result + (*data - '0');
-        ++data;
-    }
-    return result;
-}
-
-uint32_t parse_cat(const char *data)
-{
-    if (data[0] == '\0')
-    {
-        return 0;
-    }
-    uint32_t result = 0;
-    for (int i = 0; i < 8; i++)
-    {
-        unsigned int data_value =
-            (data[i] - ((data[i] >= '0' && data[i] <= '9') ? '0' : ('a' - 10)));
-        result += data_value << (28 - 4 * i);
-    }
-
-    return result;
-}
+#include "get_criteo_ad_data.h"
 
 int main(int argc, char *argv[])
 {
     int max_ind_range = -1;
     float data_sub_sample_rate = 0;
     int memory_map = 0;
-    std::string data_randomize, data_set, raw_data_file, processed_data_file;
+    std::string data_randomize, data_split, data_set, raw_data_file,
+        processed_data_file;
 
-    while (1)
+    while (true)
     {
         int c;
         static struct option long_options[] = {
@@ -61,9 +22,10 @@ int main(int argc, char *argv[])
             {"max-ind-range", optional_argument, 0, 'a'},
             {"data-sub-sample-rate", optional_argument, 0, 'b'},
             {"data-randomize", optional_argument, 0, 'c'},
-            {"memory-map", optional_argument, 0, 'd'},
-            {"raw-data-file", optional_argument, 0, 'e'},
-            {"processed-data-file", optional_argument, 0, 'f'},
+            {"data-split", optional_argument, 0, 'd'},
+            {"memory-map", optional_argument, 0, 'e'},
+            {"raw-data-file", optional_argument, 0, 'f'},
+            {"processed-data-file", optional_argument, 0, 'g'},
             {0, 0, 0, 0}};
         /* getopt_long stores the option index here. */
         int option_index = 0;
@@ -77,10 +39,10 @@ int main(int argc, char *argv[])
         switch (c)
         {
         case 0:
-            printf("option %s", long_options[option_index].name);
+            std::cout << "option " << long_options[option_index].name;
             if (optarg)
-                printf(" with arg %s", optarg);
-            printf("\n");
+                std::cout << " with arg " << optarg;
+            std::cout << std::endl;
             break;
 
         case 'a':
@@ -96,18 +58,22 @@ int main(int argc, char *argv[])
             break;
 
         case 'd':
-            memory_map = true;
+            data_split = optarg;
             break;
 
         case 'e':
-            raw_data_file = optarg;
+            memory_map = true;
             break;
 
         case 'f':
+            raw_data_file = optarg;
+            break;
+
+        case 'g':
             processed_data_file = optarg;
             break;
 
-        case '?':
+        case 'h':
             /* getopt_long already printed an error message. */
             break;
 
@@ -125,54 +91,10 @@ int main(int argc, char *argv[])
     /* Print any remaining command line arguments (not options). */
     if (optind < argc)
     {
-        printf("Non-option ARGV-elements found, exiting");
+        std::cout << "Non-option ARGV-elements found, exiting" << std::endl;
         exit(1);
     }
 
-    std::cout << "Opening: " << raw_data_file << "\n";
-    io::CSVReader<40, io::trim_chars<>, io::no_quote_escape<'\t'>> in(
-        raw_data_file);
-
-    int type;
-    char *x_int[NUM_INT];
-    char *x_cat[NUM_CAT];
-    unsigned int new_values[NUM_CAT];
-
-    std::unordered_map<unsigned int, unsigned int> convert_dicts[NUM_CAT];
-    unsigned int counter[NUM_CAT];
-    for (uint32_t i = 0; i < NUM_CAT; ++i)
-        counter[i] = 0;
-    while (in.read_row(
-        // type
-        type,
-        // 13 features taking integer values
-        x_int[0], x_int[1], x_int[2], x_int[3], x_int[4], x_int[5], x_int[6],
-        x_int[7], x_int[8], x_int[9], x_int[10], x_int[11], x_int[12],
-        // 26 categorical features
-        x_cat[0], x_cat[1], x_cat[2], x_cat[3], x_cat[4], x_cat[5], x_cat[6],
-        x_cat[7], x_cat[8], x_cat[9], x_cat[10], x_cat[11], x_cat[12],
-        x_cat[13], x_cat[14], x_cat[15], x_cat[16], x_cat[17], x_cat[18],
-        x_cat[19], x_cat[20], x_cat[21], x_cat[22], x_cat[23], x_cat[24],
-        x_cat[25]))
-    {
-        for (uint32_t q = 0; q < NUM_INT; q++)
-        {
-            parse_int(x_int[q]);
-            // TODO
-        }
-        for (uint32_t q = 0; q < NUM_CAT; q++)
-        {
-            uint32_t num = parse_cat(x_cat[q]);
-            if (convert_dicts[q].find(num) == convert_dicts[q].end())
-            {
-                new_values[q] = counter[q];
-                convert_dicts[q][num] = counter[q]++;
-            }
-            else
-            {
-                new_values[q] = convert_dicts[q][num];
-            }
-            // TODO
-        }
-    }
+    get_criteo_ad_data(raw_data_file, "", max_ind_range, data_sub_sample_rate,
+                       data_randomize, data_split, memory_map);
 }
