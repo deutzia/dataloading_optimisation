@@ -46,6 +46,7 @@ from os import path
 
 import numpy as np
 import time
+from threading import Lock, Thread
 
 def convertUStringToDistinctIntsDict(mat, convertDicts, counts):
     # Converts matrix of unicode strings into distinct integers.
@@ -969,6 +970,9 @@ def getCriteoAdData(
                     sys.exit("ERROR: Criteo Terabyte Dataset path is invalid; please download from https://labs.criteo.com/2013/12/download-terabyte-click-logs")
     logPerfMeasurement("getCriteoAdData reading data finished")
 
+    # create locks for dictionaries
+    dict_locks = [Lock() for _ in range(26)]
+
 
     # process a file worth of data and reinitialize data
     # note that a file main contain a single or multiple splits
@@ -1015,7 +1019,9 @@ def getCriteoAdData(
                     )
                 # count uniques
                 for j in range(26):
+                    dict_locks[j].acquire()
                     convertDicts[j][X_cat[i][j]] = 1
+                    dict_locks[j].release()
 
                 # debug prints
                 print(
@@ -1053,27 +1059,45 @@ def getCriteoAdData(
         return i
 
     # create all splits (reuse existing files if possible)
-    recreate_flag = False
+    recreate_flag = True # TODO now this is only temporary solution. Should be set to False instead
     convertDicts = [{} for _ in range(26)]
     # WARNING: to get reproducable sub-sampling results you must reset the seed below
     # np.random.seed(123)
     # in this case there is a single split in each day
+
+    
+
+    class ProcessOneFileThread(Thread):
+        def __init__(self, i):
+
+            Thread.__init__(self)
+            self.i = i
+
+        def run(self):
+            datfile_i = npzfile + "_{0}".format(self.i)  # + ".gz"
+            npzfile_i = npzfile + "_{0}.npz".format(self.i)
+            npzfile_p = npzfile + "_{0}_processed.npz".format(self.i)
+            if path.exists(npzfile_i):
+                print("Skip existing " + npzfile_i)
+            elif path.exists(npzfile_p):
+                print("Skip existing " + npzfile_p)
+            else:
+                recreate_flag = True
+                total_per_file[i] = process_one_file(
+                    datfile_i,
+                    npzfile,
+                    self.i,
+                    total_per_file[i],
+                )
+    process_one_file_threads = []
     for i in range(days):
-        datfile_i = npzfile + "_{0}".format(i)  # + ".gz"
-        npzfile_i = npzfile + "_{0}.npz".format(i)
-        npzfile_p = npzfile + "_{0}_processed.npz".format(i)
-        if path.exists(npzfile_i):
-            print("Skip existing " + npzfile_i)
-        elif path.exists(npzfile_p):
-            print("Skip existing " + npzfile_p)
-        else:
-            recreate_flag = True
-            total_per_file[i] = process_one_file(
-                datfile_i,
-                npzfile,
-                i,
-                total_per_file[i],
-            )
+        th = ProcessOneFileThread(i)
+        process_one_file_threads.append(th)
+        th.start()
+
+    for th in process_one_file_threads:
+        th.join()
+        
     logPerfMeasurement(f"getCriteoAdData process_one_file on all the files finished")
 
     # report and save total into a file
