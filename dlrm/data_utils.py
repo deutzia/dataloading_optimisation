@@ -48,6 +48,8 @@ import numpy as np
 import time
 from multiprocessing import Pool, Process, Manager, Value
 
+NUM_OF_PROCESSES = 1
+
 def convertUStringToDistinctIntsDict(mat, convertDicts, counts):
     # Converts matrix of unicode strings into distinct integers.
     #
@@ -754,6 +756,16 @@ def concatCriteoAdData(
     return d_path + o_filename + ".npz"
 
 
+def assignInts(j, d_path, d_file, convertDicts):
+    for i, x in enumerate(convertDicts[j].keys()):
+        convertDicts[j][x] = i
+    dict_file_j = d_path + d_file + "_fea_dict_{0}.npz".format(j)
+    if not path.exists(dict_file_j):
+        np.savez_compressed(
+            dict_file_j,
+            unique=np.array([(k, convertDicts[j][k]) for k in convertDicts[j].keys()], dtype=np.int32)
+        )
+
 def transformCriteoAdData(X_cat, X_int, y, days, data_split, randomize, total_per_file):
     # Transforms Criteo Kaggle or terabyte data by applying log transformation
     # on dense features and converting everything to appropriate tensors.
@@ -1085,8 +1097,7 @@ def getCriteoAdData(
                 max_ind_range]
             POFargs.append(args)
     
-    print(POFargs[0])
-    with Pool(2) as pool:
+    with Pool(NUM_OF_PROCESSES) as pool:
         pool.starmap(process_one_file, POFargs)
         
     logPerfMeasurement(f"getCriteoAdData process_one_file on all the files finished")
@@ -1102,16 +1113,18 @@ def getCriteoAdData(
     counts = np.zeros(26, dtype=np.int32)
     if recreate_flag:
         # create dictionaries
+        
+        AIargs = []
         for j in range(26):
-            for i, x in enumerate(convertDicts[j]):
-                convertDicts[j][x] = i
-            dict_file_j = d_path + d_file + "_fea_dict_{0}.npz".format(j)
-            if not path.exists(dict_file_j):
-                np.savez_compressed(
-                    dict_file_j,
-                    unique=np.array(list(convertDicts[j]), dtype=np.int32)
-                )
+            args = [j, d_path, d_file, convertDicts]
+            AIargs.append(args)
+            
+        with Pool(NUM_OF_PROCESSES) as pool:
+            pool.starmap(assignInts, AIargs)
+            
+        for j in range(26):
             counts[j] = len(convertDicts[j])
+
         # store (uniques and) counts
         count_file = d_path + d_file + "_fea_count.npz"
         if not path.exists(count_file):
