@@ -2,7 +2,8 @@ import os
 from os import path
 
 def results_files_names(basic_path):
-    file_names = []
+    file_names = [f"{basic_path}/day_fea_count.npz",
+                  f"{basic_path}/day_day_count.npz"]
 
     for i in range(24):
         file_names += [f"{basic_path}/day_{i}_reordered.npz"]
@@ -15,9 +16,7 @@ def results_files_names(basic_path):
 def files_names(basic_path):
     files_names = results_files_names(basic_path)
 
-    files_names += [f"{basic_path}/day_day_count.npz",
-                   f"{basic_path}/terabyte_processed.npz",
-                   f"{basic_path}/day_fea_count.npz"]
+    files_names += [f"{basic_path}/terabyte_processed.npz"]
 
     for i in range(24):
         files_names += [f"{basic_path}/day_{i}",
@@ -35,6 +34,3 @@ def clean_old_files(basic_path):
         if path.exists(file_name):
             print(f"removing old file: {file_name}")
             os.remove(file_name)
-
-if __name__ == "__main__":
-    clean_old_files()
