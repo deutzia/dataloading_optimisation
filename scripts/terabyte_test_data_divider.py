@@ -1,6 +1,9 @@
 from itertools import islice
 from os import path
 
+if __name__ == "__main__":
+    import importlib
+    importlib.import_module('ensure_paths')
 
 def divide_data(basic_path, datafile):
     total_count = 0
@@ -27,3 +30,20 @@ def divide_data(basic_path, datafile):
         for q in range(per_file):
             line = input_file.readline()
             output_file.write(line)
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Divides data file into 24 files"
+    )
+    # model related parameters
+    default_data_file = "day_0_repr_sample_1000r"
+    parser.add_argument("--data-file", type=str, default=default_data_file,
+                        help=f"The name of the data file that will be an input for data_utils. Defaultly: {default_data_file}")
+    args = parser.parse_args()
+
+    basic_path = "./test_data"
+    datafile = f"./test_data/{args.data_file}"
+
+    divide_data(basic_path, datafile)
