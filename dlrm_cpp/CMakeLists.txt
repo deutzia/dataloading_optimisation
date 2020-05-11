@@ -8,6 +8,9 @@ endif (COMMAND cmake_policy)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lz")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+
+add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
 
 option(ENABLE_STATIC "Build static (.a) library" ON)
 
@@ -19,7 +22,7 @@ include_directories(../cnpy)
 include_directories(.)
 include_directories(../fast-cpp-csv-parser)
 
-add_library(cnpy SHARED ../cnpy/cnpy.cpp)
+add_library(cnpy SHARED ../cnpy/cnpy.cpp ../global.cc)
 target_link_libraries(cnpy ${ZLIB_LIBRARIES})
 
 add_executable(main
@@ -35,6 +38,7 @@ add_executable(main
         process_one_file.cc
         process_criteo_ad_data.cc
         concat_criteo_ad_data.cc
+        global.cc
         main.cc)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

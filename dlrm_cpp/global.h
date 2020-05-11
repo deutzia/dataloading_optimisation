@@ -3,14 +3,39 @@
 
 #include <complex>
 #include <unordered_map>
+#include <sstream>
+
+#ifdef DEBUG
+
+const bool DB = true;
+
+std::stringstream& sstream();
+
+#define FLUSH(cond) {if (cond) {std::clog << sstream().str(); sstream().str("");}}
+#define PRINT(cond, val) {if (cond) {sstream() << val;}}
+#define PRINTLN(cond, val) {if (cond) {sstream() << val << "\n";}}
+#define PRINTLNF(cond, val) {PRINTLN(cond, val) FLUSH(cond)}
+#define DEB(cond, instr) instr;
+
+#else
+
+const bool DB = false;
+
+#define FLUSH(cond) ;
+#define PRINT(cond, val) ;
+#define PRINTLN(cond, val) ;
+#define PRINTLNF(cond, val) ;
+#define DEB(cond, instr) ;
+
+#endif
 
 constexpr uint32_t NUM_INT = 13;
 constexpr uint32_t NUM_CAT = 26;
 constexpr uint32_t DAYS = 24;
 
 typedef int32_t df_t;
-typedef uint32_t sf_t;
-typedef uint32_t target_t;
+typedef int32_t sf_t;
+typedef int32_t target_t;
 
 // typedef df_t df_array_t[NUM_INT];
 // typedef sf_t sf_array_t[NUM_INT];
@@ -35,6 +60,6 @@ typedef struct sf_array_t
     }
 } sf_array_t;
 
-typedef std::unordered_map<uint32_t, unsigned int> conv_dict_t;
+typedef std::unordered_map<sf_t, unsigned int> conv_dict_t;
 
 #endif // DATALOADING_OPTIMIZATIONS_GLOBAL_H

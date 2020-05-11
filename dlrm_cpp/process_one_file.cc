@@ -26,7 +26,10 @@ int process_one_file(std::string &datfile, std::string &npzfile, int split,
     char *x_cat_str[NUM_CAT];
 
     if (sub_sample_rate == 0.0)
-        rand_u.push_back(1.0);
+    {
+        rand_u.reserve(1);
+        rand_u[0] = 1.0;
+    }
     else
     {
         std::random_device rd;
@@ -65,11 +68,13 @@ int process_one_file(std::string &datfile, std::string &npzfile, int split,
         if (type == 0 && ru < sub_sample_rate)
             continue;
 
+        y[sample_count] = type;
+
         for (int q = 0; q < NUM_INT; q++)
             x_int[sample_count][q] = parse_int(x_int_str[q]);
         for (int q = 0; q < NUM_CAT; q++)
         {
-            uint32_t num = x_cat[sample_count][q] = parse_cat(x_cat_str[q]);
+            sf_t num = x_cat[sample_count][q] = parse_cat(x_cat_str[q]);
             if (convert_dicts[q].find(num) == convert_dicts[q].end())
                 convert_dicts[q][num] = 1;
         }
@@ -82,16 +87,15 @@ int process_one_file(std::string &datfile, std::string &npzfile, int split,
     else
     {
         // transposing x_cat
-        for (int q = 0; q < NUM_CAT; q++)
-            x_cat_t.reserve(NUM_CAT * num_data_in_split);
+        x_cat_t.reserve(NUM_CAT * num_data_in_split);
         for (int i = 0; i < num_data_in_split; i++)
             for (int q = 0; q < NUM_CAT; q++)
-                x_cat_t[q * NUM_CAT + i] = x_cat[i][q];
-        cnpy::npz_save(filename_s, "X_int", x_int.data(),
+                x_cat_t[q * num_data_in_split + i] = x_cat[i][q];
+        cnpy::npz_save<df_t>(filename_s, "X_int", (df_t*) x_int.data(),
                        {(size_t)num_data_in_split, NUM_INT});
-        cnpy::npz_save(filename_s, "X_cat_t", x_cat_t.data(),
+        cnpy::npz_save(filename_s, "X_cat_t", (sf_t*) x_cat_t.data(),
                        {NUM_CAT, (size_t)num_data_in_split}, "a");
-        cnpy::npz_save(filename_s, "y", y.data(), {(size_t)num_data_in_split},
+        cnpy::npz_save(filename_s, "y", (target_t*) y.data(), {(size_t)num_data_in_split},
                        "a");
         std::cout << "\nSaved " << npzfile << "_" << split << ".npz!\n";
     }

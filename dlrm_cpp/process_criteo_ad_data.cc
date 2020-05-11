@@ -27,25 +27,25 @@ void process_criteo_ad_data(std::string &d_path, std::string &d_file,
             x_int.reserve(num_data_in_split);
             x_cat.reserve(num_data_in_split);
             y.reserve(num_data_in_split);
-            auto x_cat_data = data["X_cat_t"].data<sf_t>();
+            auto x_cat_t_data = data["X_cat_t"].data<sf_t>();
             for (int j = 0; j < NUM_CAT; j++)
                 for (int k = 0; k < num_data_in_split; k++)
-                    x_cat[k][j] = convert_dicts[j][x_cat_data[j * NUM_CAT + k]];
+                    x_cat[k][j] = convert_dicts[j][x_cat_t_data[j * num_data_in_split + k]];
             // continuous features
             auto x_int_data = data["X_int"].data<df_t>();
             for (int k = 0; k < num_data_in_split; k++)
                 for (int j = 0; j < NUM_INT; j++)
                     x_int[k][j] =
-                        std::max(0, x_int_data[k * num_data_in_split + j]);
+                        std::max(0, x_int_data[k * NUM_INT + j]);
             // targets
             auto y_data = data["y"].data<target_t>();
 
             // save
-            cnpy::npz_save(filename_i, "X_int", x_int.data(),
+            cnpy::npz_save(filename_i, "X_int", (df_t*) x_int.data(),
                            {(size_t)num_data_in_split, NUM_INT});
-            cnpy::npz_save(filename_i, "X_cat", x_cat.data(),
+            cnpy::npz_save(filename_i, "X_cat", (sf_t*) x_cat.data(),
                            {(size_t)num_data_in_split, NUM_CAT}, "a");
-            cnpy::npz_save(filename_i, "y", y_data, {(size_t)num_data_in_split},
+            cnpy::npz_save(filename_i, "y", (target_t*) y_data, {(size_t)num_data_in_split},
                            "a");
             std::cout << "Processed " << filename_i << std::endl;
         }
