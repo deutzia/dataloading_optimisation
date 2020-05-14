@@ -111,7 +111,7 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
                 for k, x in enumerate(tmp):
                     tmp[k] = convertDicts[j][x]
 
-            X_int.applymap(lambda x: max(x, 0))
+            X_int = X_int.applymap(lambda x: max(x, 0))
 
             # np.savez_compressed(
             #     filename_i,
