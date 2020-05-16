@@ -600,14 +600,14 @@ def getCriteoAdData(
                 types.add(type(val))
             print(types, file = sys.stderr)
 
-        logPerfMeasurement("process_one_file starting")
-        y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
-        X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
-        X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
+        # logPerfMeasurement("process_one_file starting")
+        # y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
+        # X_int = np.zeros((num_data_in_split, 13), dtype="i4")  # 4 byte int
+        # X_cat = np.zeros((num_data_in_split, 26), dtype="i4")  # 4 byte int
 
         i = 0
         df = pandas.read_csv(datfile, sep="\t", header=None, dtype=np.str, engine='c')
-        logPerfMeasurement("process_one_file read csv")
+        # logPerfMeasurement("process_one_file read csv")
 
 #        printTypesDataFrame(df, "df")
 
@@ -619,7 +619,7 @@ def getCriteoAdData(
             rand_booleans = np.full(num_data_in_split, True, dtype=bool)
         keep_rows = ((targets > 0) | rand_booleans)
         df = df.loc[keep_rows]
-        logPerfMeasurement("process_one_file drop random")
+        # logPerfMeasurement("process_one_file drop random")
 
         y = df[0]
 #        printTypesSeries(y, "y")
@@ -640,7 +640,7 @@ def getCriteoAdData(
             X_cat = X_cat.applymap(lambda x: int(x, 16))
             X_cat = X_cat.astype(dtype=np.int32, copy=False)
         d = {}
-        logPerfMeasurement("process_one_file applymap")
+        # logPerfMeasurement("process_one_file applymap")
         for j in range(26):
             d[j + 14] = j
         X_cat.rename(columns=d, inplace=True)
@@ -648,7 +648,7 @@ def getCriteoAdData(
             for elem in X_cat[j]:
                 convertDicts[j][elem] = 1
             print(convertDicts[j])
-        logPerfMeasurement("process_one_file convert-dicts stuff")
+        # logPerfMeasurement("process_one_file convert-dicts stuff")
 
 
         filename_s = npzfile + "_{0}.npz".format(split)
@@ -667,7 +667,7 @@ def getCriteoAdData(
             save_df(y, filename_s, 'y')
 
             print("\nSaved " + npzfile + "_{0}.npz!".format(split))
-        logPerfMeasurement("process_one_file save compressed")
+        # logPerfMeasurement("process_one_file save compressed")
         return len(X_cat)
 
     # create all splits (reuse existing files if possible)
