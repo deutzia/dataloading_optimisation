@@ -48,7 +48,7 @@ import numpy as np
 import time
 from multiprocessing import Pool, Process, Manager, Value
 
-NUM_OF_PROCESSES = 2
+NUM_OF_PROCESSES = 1
 
 def convertUStringToDistinctIntsDict(mat, convertDicts, counts):
     # Converts matrix of unicode strings into distinct integers.
@@ -150,6 +150,7 @@ def processCriteoAdData(i, d_path, d_file, npzfile, split, convertDicts, pre_com
             # continuous features
             X_int = data["X_int"]
             X_int[X_int < 0] = 0
+            print(np.transpose(X_cat_t)[0], file=sys.stderr)
             # targets
             y = data["y"]
 
@@ -762,7 +763,7 @@ def assignInts(j, d_path, d_file, convertDicts):
     if not path.exists(dict_file_j):
         np.savez_compressed(
             dict_file_j,
-            unique=np.array([(k, convertDicts[j][k]) for k in convertDicts[j].keys()], dtype=np.int32)
+            unique=np.array(convertDicts[j].keys(), dtype=np.int32)
         )
 
 def transformCriteoAdData(X_cat, X_int, y, days, data_split, randomize, total_per_file):
