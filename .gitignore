@@ -1,0 +1,7 @@
+.idea/
+*.swp
+*.swo
+venv/
+*__pycache__*
+env_launch.sh
+test_data/
