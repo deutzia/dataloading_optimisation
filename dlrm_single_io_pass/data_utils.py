@@ -35,54 +35,6 @@ from os import path
 
 import numpy as np
 
-def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_counts):
-    # Process Kaggle Display Advertising Challenge or Terabyte Dataset
-    # by converting unicode strings in X_cat to integers and
-    # converting negative integer values in X_int.
-    #
-    # Loads data in the form "{kaggle|terabyte}_day_i.npz" where i is the day.
-    #
-    # Inputs:
-    #   d_path (str): path for {kaggle|terabyte}_day_i.npz files
-    #   split (int): total number of splits in the dataset (typically 7 or 24)
-
-    # process data if not all files exist
-    for i in range(split):
-        filename_i = npzfile + "_{0}_processed.npz".format(i)
-
-        if path.exists(filename_i):
-            print("Using existing " + filename_i, end="\r")
-        else:
-            with np.load(npzfile + "_{0}.npz".format(i)) as data:
-                # categorical features
-                # Approach 2a: using pre-computed dictionaries
-                X_cat_t = np.zeros(data["X_cat_t"].shape)
-                for j in range(26):
-                    for k, x in enumerate(data["X_cat_t"][j, :]):
-                        X_cat_t[j, k] = convertDicts[j][x]
-                # continuous features
-                X_int = data["X_int"]
-                X_int[X_int < 0] = 0
-                # targets
-                y = data["y"]
-
-            np.savez_compressed(
-                filename_i,
-                # X_cat = X_cat,
-                X_cat=np.transpose(X_cat_t),  # transpose of the data
-                X_int=X_int,
-                y=y,
-            )
-            print("Processed " + filename_i, end="\r")
-    print("")
-    # sanity check (applicable only if counts have been pre-computed & are re-computed)
-    # for j in range(26):
-    #    if pre_comp_counts[j] != counts[j]:
-    #        sys.exit("ERROR: Sanity check on counts has failed")
-    # print("\nSanity check on counts passed")
-
-    return
-
 
 def concatCriteoAdData(
         d_path,
@@ -392,6 +344,7 @@ def getCriteoAdData(
 
                 y[i] = target
                 X_int[i] = np.array(line[1:14], dtype=np.int32)
+                X_int[X_int < 0] = 0
                 if max_ind_range > 0:
                     X_cat[i] = np.array(
                         list(map(lambda x: int(x, 16) % max_ind_range, line[14:])),
@@ -404,7 +357,13 @@ def getCriteoAdData(
                     )
                 # count uniques
                 for j in range(26):
-                    convertDicts[j][X_cat[i][j]] = 1
+                    key = X_cat[i][j]
+                    val = 0
+                    if (key in convertDicts[j]):
+                        X_cat[i][j] = convertDicts[j][key]
+                    else:
+                        X_cat[i][j] = convertDicts[j][key] = counts[j]
+                        counts[j] = counts[j] + 1
 
                 # debug prints
                 print(
@@ -420,40 +379,30 @@ def getCriteoAdData(
                 )
                 i += 1
 
-            # store num_data_in_split samples or extras at the end of file
-            # count uniques
-            # X_cat_t  = np.transpose(X_cat)
-            # for j in range(26):
-            #     for x in X_cat_t[j,:]:
-            #         convertDicts[j][x] = 1
-            # store parsed
-            filename_s = npzfile + "_{0}.npz".format(split)
-            if path.exists(filename_s):
+            filename_p = npzfile + "_{0}_processed.npz".format(split)
+            if path.exists(filename_p):
                 print("\nSkip existing " + filename_s)
             else:
                 np.savez_compressed(
-                    filename_s,
-                    X_int=X_int[0:i, :],
-                    # X_cat=X_cat[0:i, :],
-                    X_cat_t=np.transpose(X_cat[0:i, :]),  # transpose of the data
-                    y=y[0:i],
+                    filename_p,
+                    X_cat = X_cat,
+                    X_int=X_int,
+                    y=y,
                 )
-                print("\nSaved " + npzfile + "_{0}.npz!".format(split))
+                print("Processed " + filename_p, end="\r")
         return i
 
     # create all splits (reuse existing files if possible)
     recreate_flag = False
     convertDicts = [{} for _ in range(26)]
+    counts = np.zeros(26, dtype=np.int32)
     # WARNING: to get reproducable sub-sampling results you must reset the seed below
     # np.random.seed(123)
     # in this case there is a single split in each day
     for i in range(days):
         datfile_i = npzfile + "_{0}".format(i)  # + ".gz"
-        npzfile_i = npzfile + "_{0}.npz".format(i)
         npzfile_p = npzfile + "_{0}_processed.npz".format(i)
-        if path.exists(npzfile_i):
-            print("Skip existing " + npzfile_i)
-        elif path.exists(npzfile_p):
+        if path.exists(npzfile_p):
             print("Skip existing " + npzfile_p)
         else:
             recreate_flag = True
@@ -472,19 +421,15 @@ def getCriteoAdData(
     print("Divided into days/splits:\n", total_per_file)
 
     # dictionary files
-    counts = np.zeros(26, dtype=np.int32)
     if recreate_flag:
         # create dictionaries
         for j in range(26):
-            for i, x in enumerate(convertDicts[j]):
-                convertDicts[j][x] = i
             dict_file_j = d_path + d_file + "_fea_dict_{0}.npz".format(j)
             if not path.exists(dict_file_j):
                 np.savez_compressed(
                     dict_file_j,
                     unique=np.array(list(convertDicts[j]), dtype=np.int32)
                 )
-            counts[j] = len(convertDicts[j])
         # store (uniques and) counts
         count_file = d_path + d_file + "_fea_count.npz"
         if not path.exists(count_file):
@@ -501,7 +446,6 @@ def getCriteoAdData(
             counts = data["counts"]
 
     # process all splits
-    processCriteoAdData(d_path, d_file, npzfile, days, convertDicts, counts)
     o_file = concatCriteoAdData(
         d_path,
         d_file,
