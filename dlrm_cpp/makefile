@@ -1,10 +1,10 @@
-COMPILER = clang++
+COMPILER = g++
 HOMEDIR = ..
 CNPY = $(HOMEDIR)/cnpy
 CSV_PARSER = $(HOMEDIR)/fast-cpp-csv-parser
 CPPFLAGS = -Wall -Wextra -std=c++17 -O2 -pthread
 INCFLAGS = -I$(CNPY) -I$(CSV_PARSER)
-LINKFLAGS = -L$(CNPY) -lcnpy -lz
+LINKFLAGS = -L$(CNPY) -lcnpy -lz -lstdc++fs
 
 -include $(OBJS:.o=.d)
 
@@ -12,7 +12,7 @@ SRCS = main.cc get_criteo_ad_data.cc process_one_file.cc process_criteo_ad_data.
 OBJS = $(SRCS:.cc=.o)
 
 main: $(OBJS)
-	$(COMPILER) $(CPPFLAGS) $(LINKFLAGS) $(OBJS) -o main
+	$(COMPILER) $(OBJS) $(CPPFLAGS) $(LINKFLAGS) -o main
 
 # This is some dark magic and I don't want to understand
 # http://www.scottmcpeak.com/autodepend/autodepend.html
