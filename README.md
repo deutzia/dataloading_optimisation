@@ -25,7 +25,7 @@
 To compare outputs of the `/DATA_UTILS_DIR/data_utils.py` provided by a user and the tgrel's original one (`/dlrm_tgrel/data_utils.py`)
 run `python3 scripts/cmp_data_utils_outputs.py --data-utils-dir DATA_UTILS_DIR` in `/`
 
-(it defaultly compares results for `day_0_repr_sample_1000r`, which is located in `/test_data/`).
+(it defaultly compares results for `day_0_repr_sample_1000r`, which should be put in `/test_data/`).
 
 If you would like to compare outputs for another data file, type:
 
