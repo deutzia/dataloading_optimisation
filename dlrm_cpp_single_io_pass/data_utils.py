@@ -75,8 +75,8 @@ def loadDataset(
     else:
         print("Reading raw data=%s" % (str(raw_path)))
         file = d_path + o_filename + ".npz"
-        os.system("cd dlrm_cpp; ./build.sh; cd ..")
-        os.system("dlrm_cpp/build/main "
+        os.system("cd dlrm_cpp_single_io_pass; ./build.sh; cd ..")
+        os.system("dlrm_cpp_single_io_pass/build/main "
                   f"--max-ind-range={max_ind_range} "
                   f"--data-sub-sample-rate={sub_sample_rate} "
                   f"--data-split={data_split} "

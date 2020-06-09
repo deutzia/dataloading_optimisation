@@ -2,13 +2,13 @@ COMPILER = clang++
 HOMEDIR = ..
 CNPY = $(HOMEDIR)/cnpy
 CSV_PARSER = $(HOMEDIR)/fast-cpp-csv-parser
-CPPFLAGS = -Wall -Wextra -std=c++17 -O2 -pthread
+CPPFLAGS = -Wall -Wextra -std=c++17 -O2 -pthread -lstdc++fs
 INCFLAGS = -I$(CNPY) -I$(CSV_PARSER)
 LINKFLAGS = -L$(CNPY) -lcnpy -lz
 
 -include $(OBJS:.o=.d)
 
-SRCS = main.cc get_criteo_ad_data.cc process_one_file.cc process_criteo_ad_data.cc concat_criteo_ad_data.cc
+SRCS = main.cc get_criteo_ad_data.cc process_one_file.cc concat_criteo_ad_data.cc
 OBJS = $(SRCS:.cc=.o)
 
 main: $(OBJS)

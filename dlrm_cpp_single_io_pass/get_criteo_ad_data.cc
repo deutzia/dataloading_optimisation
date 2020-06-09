@@ -10,7 +10,6 @@
 #include "concat_criteo_ad_data.h"
 #include "get_criteo_ad_data.h"
 #include "global.h"
-#include "process_criteo_ad_data.h"
 #include "process_one_file.h"
 
 std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
@@ -76,11 +75,8 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
     for (int i = 0; i < DAYS; i++)
     {
         auto datfile_i = npzfile + "_" + std::to_string(i);
-        auto npzfile_i = npzfile + "_" + std::to_string(i) + ".npz";
         auto npzfile_p = npzfile + "_" + std::to_string(i) + "_processed.npz";
-        if (std::filesystem::exists(npzfile_i))
-            std::cout << "Skip existing " << npzfile_i << std::endl;
-        else if (std::filesystem::exists(npzfile_p))
+        if (std::filesystem::exists(npzfile_p))
             std::cout << "Skip existing " << npzfile_p << std::endl;
         else
         {
@@ -115,10 +111,6 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
         // create dictionaries
         for (int j = 0; j < NUM_CAT; j++)
         {
-            int k = 0;
-            for (auto it = convert_dicts[j].begin();
-                 it != convert_dicts[j].end(); it++, k++)
-                it->second = k;
             auto dict_file_j =
                 d_path + d_file + "_fea_dict_" + std::to_string(j) + ".npz";
             if (!std::filesystem::exists(dict_file_j))
@@ -130,7 +122,6 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
                     unique[k] = it->first;
                 cnpy::npz_save(dict_file_j, "unique", unique);
             }
-            counts[j] = convert_dicts[j].size();
         }
         // store (uniques and) counts
         auto count_file = d_path + d_file + "_fea_count.npz";
@@ -158,9 +149,6 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
             counts[j] = counts_data[j];
     }
 
-    // process all splits
-    process_criteo_ad_data(d_path, d_file, npzfile, convert_dicts, x_int, x_cat,
-                           x_cat_t, y);
     auto o_file = concat_criteo_ad_data(
         d_path, d_file, npzfile, trafile, randomize, data_split, total_per_file,
         total_count, memory_map, o_filename, x_int, x_cat, x_cat_t, y);

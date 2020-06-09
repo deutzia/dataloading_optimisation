@@ -10,6 +10,8 @@
 #include "parse.h"
 #include "process_one_file.h"
 
+int counts[NUM_CAT];
+
 int process_one_file(std::string &datfile, std::string &npzfile, int split,
                      int num_data_in_split, float sub_sample_rate,
                      int max_ind_range, std::vector<float> &rand_u,
@@ -74,9 +76,15 @@ int process_one_file(std::string &datfile, std::string &npzfile, int split,
             x_int[sample_count][q] = parse_int(x_int_str[q]);
         for (int q = 0; q < NUM_CAT; q++)
         {
-            sf_t num = x_cat[sample_count][q] = parse_cat(x_cat_str[q]);
-            if (convert_dicts[q].find(num) == convert_dicts[q].end())
-                convert_dicts[q][num] = 1;
+            auto key = x_cat[sample_count][q];
+            auto val = 0;
+
+            if (convert_dicts[q].find(key) != convert_dicts[q].end()) {
+                x_cat[sample_count][q] = convert_dicts[sample_count][key];
+            } else {
+                x_cat[sample_count][q] = convert_dicts[sample_count][key] = counts[q];
+                counts[q] = counts[q] + 1;
+            }
         }
         sample_count++;
     }
