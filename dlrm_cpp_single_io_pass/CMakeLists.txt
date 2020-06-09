@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10)
 project(dataloading_optimizations)
 
 if (COMMAND cmake_policy)
@@ -34,11 +34,9 @@ add_executable(main
         parse.h
         get_criteo_ad_data.h
         process_one_file.h
-        process_criteo_ad_data.h
         concat_criteo_ad_data.h
         get_criteo_ad_data.cc
         process_one_file.cc
-        process_criteo_ad_data.cc
         concat_criteo_ad_data.cc
         global.cc
         main.cc)
