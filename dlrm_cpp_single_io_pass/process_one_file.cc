@@ -10,15 +10,12 @@
 #include "parse.h"
 #include "process_one_file.h"
 
-int counts[NUM_CAT];
-
 int process_one_file(std::string &datfile, std::string &npzfile, int split,
                      int num_data_in_split, float sub_sample_rate,
                      int max_ind_range, std::vector<float> &rand_u,
-                     conv_dict_t convert_dicts[],
+                     conv_dict_t convert_dicts[], std::vector<sf_t> &counts,
                      std::vector<df_array_t> &x_int,
-                     std::vector<sf_array_t> &x_cat, std::vector<sf_t> &x_cat_t,
-                     std::vector<target_t> &y)
+                     std::vector<sf_array_t> &x_cat, std::vector<target_t> &y)
 {
     std::cout << "Opening: " << datfile << "\n";
     io::CSVReader<40, io::trim_chars<>, io::no_quote_escape<'\t'>> in(datfile);
@@ -73,39 +70,39 @@ int process_one_file(std::string &datfile, std::string &npzfile, int split,
         y[sample_count] = type;
 
         for (int q = 0; q < NUM_INT; q++)
-            x_int[sample_count][q] = parse_int(x_int_str[q]);
+            x_int[sample_count][q] = std::max(0, parse_int(x_int_str[q]));
         for (int q = 0; q < NUM_CAT; q++)
         {
-            auto key = x_cat[sample_count][q];
-            auto val = 0;
+            auto key = parse_cat(x_cat_str[q]);
 
-            if (convert_dicts[q].find(key) != convert_dicts[q].end()) {
-                x_cat[sample_count][q] = convert_dicts[sample_count][key];
-            } else {
-                x_cat[sample_count][q] = convert_dicts[sample_count][key] = counts[q];
-                counts[q] = counts[q] + 1;
+            auto it = convert_dicts[q].find(key);
+            if (it != convert_dicts[q].end())
+            {
+                x_cat[sample_count][q] = it->second;
+            }
+            else
+            {
+                convert_dicts[q].insert(std::make_pair(key, counts[q]));
+                x_cat[sample_count][q] = counts[q];
+                counts[q]++;
             }
         }
         sample_count++;
     }
 
-    std::string filename_s = npzfile + "_" + std::to_string(split) + ".npz";
+    std::string filename_s =
+        npzfile + "_" + std::to_string(split) + "_processed.npz";
     if (std::filesystem::exists(filename_s))
         std::cout << "\nSkip existing " << filename_s << "\n";
     else
     {
-        // transposing x_cat
-        x_cat_t.reserve(NUM_CAT * num_data_in_split);
-        for (int i = 0; i < num_data_in_split; i++)
-            for (int q = 0; q < NUM_CAT; q++)
-                x_cat_t[q * num_data_in_split + i] = x_cat[i][q];
-        cnpy::npz_save<df_t>(filename_s, "X_int", (df_t*) x_int.data(),
+        cnpy::npz_save(filename_s, "X_int", (df_t *)x_int.data(),
                        {(size_t)num_data_in_split, NUM_INT});
-        cnpy::npz_save(filename_s, "X_cat_t", (sf_t*) x_cat_t.data(),
-                       {NUM_CAT, (size_t)num_data_in_split}, "a");
-        cnpy::npz_save(filename_s, "y", (target_t*) y.data(), {(size_t)num_data_in_split},
-                       "a");
-        std::cout << "\nSaved " << npzfile << "_" << split << ".npz!\n";
+        cnpy::npz_save(filename_s, "X_cat", (sf_t *)x_cat.data(),
+                       {(size_t)num_data_in_split, NUM_CAT}, "a");
+        cnpy::npz_save(filename_s, "y", (target_t *)y.data(),
+                       {(size_t)num_data_in_split}, "a");
+        std::cout << "\nSaved " << filename_s << "!\n";
     }
 
     return sample_count;

@@ -62,14 +62,11 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
     // create all splits (reuse existing files if possible)
     bool recreate_flag = false;
     conv_dict_t convert_dicts[NUM_CAT];
-    unsigned counter[NUM_CAT];
-    for (int i = 0; i < NUM_CAT; ++i)
-        counter[i] = 0;
+    std::vector<sf_t> counts(NUM_CAT);
     std::vector<float> rand_u;
 
     std::vector<df_array_t> x_int;
     std::vector<sf_array_t> x_cat;
-    std::vector<sf_t> x_cat_t;
     std::vector<target_t> y;
 
     for (int i = 0; i < DAYS; i++)
@@ -83,7 +80,7 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
             recreate_flag = true;
             total_per_file[i] = process_one_file(
                 datfile_i, npzfile, i, total_per_file[i], sub_sample_rate,
-                max_ind_range, rand_u, convert_dicts, x_int, x_cat, x_cat_t, y);
+                max_ind_range, rand_u, convert_dicts, counts, x_int, x_cat, y);
         }
     }
 
@@ -105,7 +102,6 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
     std::cout << "]" << std::endl;
 
     // dictionary files
-    std::vector<unsigned> counts(NUM_CAT);
     if (recreate_flag)
     {
         // create dictionaries
@@ -116,10 +112,9 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
             if (!std::filesystem::exists(dict_file_j))
             {
                 std::vector<sf_t> unique(convert_dicts[j].size());
-                int k = 0;
                 for (auto it = convert_dicts[j].begin();
-                     it != convert_dicts[j].end(); it++, k++)
-                    unique[k] = it->first;
+                     it != convert_dicts[j].end(); it++)
+                    unique[it->second] = it->first;
                 cnpy::npz_save(dict_file_j, "unique", unique);
             }
         }
@@ -151,7 +146,7 @@ std::string get_criteo_ad_data(std::string &datafile, std::string o_filename,
 
     auto o_file = concat_criteo_ad_data(
         d_path, d_file, npzfile, trafile, randomize, data_split, total_per_file,
-        total_count, memory_map, o_filename, x_int, x_cat, x_cat_t, y);
+        total_count, memory_map, o_filename, x_int, x_cat, y);
 
     return o_file;
 }

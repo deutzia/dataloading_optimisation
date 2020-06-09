@@ -2,19 +2,41 @@
 #define DATALOADING_OPTIMIZATIONS_GLOBAL_H
 
 #include <complex>
-#include <unordered_map>
 #include <sstream>
+#include <unordered_map>
 
 #ifdef DEBUG
 
 const bool DB = true;
 
-std::stringstream& sstream();
+std::stringstream &sstream();
 
-#define FLUSH(cond) {if (cond) {std::clog << sstream().str(); sstream().str("");}}
-#define PRINT(cond, val) {if (cond) {sstream() << val;}}
-#define PRINTLN(cond, val) {if (cond) {sstream() << val << "\n";}}
-#define PRINTLNF(cond, val) {PRINTLN(cond, val) FLUSH(cond)}
+#define FLUSH(cond)                                                            \
+    {                                                                          \
+        if (cond)                                                              \
+        {                                                                      \
+            std::clog << sstream().str();                                      \
+            sstream().str("");                                                 \
+        }                                                                      \
+    }
+#define PRINT(cond, val)                                                       \
+    {                                                                          \
+        if (cond)                                                              \
+        {                                                                      \
+            sstream() << val;                                                  \
+        }                                                                      \
+    }
+#define PRINTLN(cond, val)                                                     \
+    {                                                                          \
+        if (cond)                                                              \
+        {                                                                      \
+            sstream() << val << "\n";                                          \
+        }                                                                      \
+    }
+#define PRINTLNF(cond, val)                                                    \
+    {                                                                          \
+        PRINTLN(cond, val) FLUSH(cond)                                         \
+    }
 #define DEB(cond, instr) instr;
 
 #else

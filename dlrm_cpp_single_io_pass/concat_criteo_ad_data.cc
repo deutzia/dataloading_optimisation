@@ -15,8 +15,7 @@ std::string concat_criteo_ad_data(
     std::string &trafile, std::string &randomize, std::string &data_split,
     std::vector<unsigned> &total_per_file, unsigned total_count,
     bool memory_map, std::string &o_filename, std::vector<df_array_t> &x_int,
-    std::vector<sf_array_t> &x_cat, std::vector<sf_t> &x_cat_t,
-    std::vector<target_t> &y)
+    std::vector<sf_array_t> &x_cat, std::vector<target_t> &y)
 {
     if (memory_map)
     {
@@ -74,11 +73,11 @@ std::string concat_criteo_ad_data(
                     npzfile + "_" + std::to_string(j) + "_intermediate_d.npy";
                 auto filename_j_s =
                     npzfile + "_" + std::to_string(j) + "_intermediate_s.npy";
-                cnpy::npy_save(filename_j_y, (target_t*) y.data(),
+                cnpy::npy_save(filename_j_y, (target_t *)y.data(),
                                {(size_t)total_per_file[j]});
-                cnpy::npy_save(filename_j_d, (df_t*) x_int.data(),
+                cnpy::npy_save(filename_j_d, (df_t *)x_int.data(),
                                {(size_t)total_per_file[j], NUM_INT});
-                cnpy::npy_save(filename_j_s, (sf_t*) x_cat.data(),
+                cnpy::npy_save(filename_j_s, (sf_t *)x_cat.data(),
                                {(size_t)total_per_file[j], NUM_CAT});
             }
             // start processing files
@@ -164,7 +163,7 @@ std::string concat_criteo_ad_data(
                     auto fj_y = fj_y_npy.data<target_t>();
                     for (int k = 0; k < counter[j]; k++)
                         fj_y[start + k] = y_data[buckets[j][k]];
-                    cnpy::npy_save(filename_j_y, (target_t*) fj_y,
+                    cnpy::npy_save(filename_j_y, (target_t *)fj_y,
                                    {(size_t)total_per_file[j]});
 
                     // dense buckets
@@ -173,7 +172,7 @@ std::string concat_criteo_ad_data(
                     for (int k = 0; k < counter[j]; k++)
                         for (int q = 0; q < NUM_INT; q++)
                             fj_d[start + k][q] = x_int_data[buckets[j][k]][q];
-                    cnpy::npy_save(filename_j_d, (df_t*) fj_d,
+                    cnpy::npy_save(filename_j_d, (df_t *)fj_d,
                                    {(size_t)total_per_file[j], NUM_INT});
 
                     // sparse buckets
@@ -182,7 +181,7 @@ std::string concat_criteo_ad_data(
                     for (int k = 0; k < counter[j]; k++)
                         for (int q = 0; q < NUM_CAT; q++)
                             fj_s[start + k][q] = x_cat_data[buckets[j][k]][q];
-                    cnpy::npy_save(filename_j_s, (sf_t*) fj_s,
+                    cnpy::npy_save(filename_j_s, (sf_t *)fj_s,
                                    {(size_t)total_per_file[j], NUM_CAT});
 
                     // update counters for next step
@@ -250,11 +249,11 @@ std::string concat_criteo_ad_data(
                 for (int i = 0; i < total_per_file[j]; i++)
                     y[i] = fj_y[indices[i]];
 
-                cnpy::npz_save(filename_r, "X_cat", (sf_t*) x_cat.data(),
+                cnpy::npz_save(filename_r, "X_cat", (sf_t *)x_cat.data(),
                                {(size_t)total_per_file[j], NUM_CAT});
-                cnpy::npz_save(filename_r, "X_int", (df_t*) x_int.data(),
+                cnpy::npz_save(filename_r, "X_int", (df_t *)x_int.data(),
                                {(size_t)total_per_file[j], NUM_INT}, "a");
-                cnpy::npz_save(filename_r, "y", (target_t*) y.data(),
+                cnpy::npz_save(filename_r, "y", (target_t *)y.data(),
                                {(size_t)total_per_file[j]}, "a");
             }
     }
