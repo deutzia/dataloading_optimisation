@@ -34,9 +34,9 @@ Records from the above files meet the following condition:
 `day_0_repr_sample_1000r` ⊆ `day_0_repr_sample_small` ⊆ `day_0_repr_sample_medium` ⊆ `day_0_repr_sample_big`
 
 ```
-python3 extract_smaples.py <path>
+python3 scripts/extract_smaples.py PATH
 ```
-where `<path>` link to a directory containing files `day_0_big_0`, ..., `day_0_big_22`
+where `PATH` link to a directory containing files `day_0_big_0`, ..., `day_0_big_22`
 
 ## Launching terabyte dataloading pipeline with benchmark
 
