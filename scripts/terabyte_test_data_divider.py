@@ -13,7 +13,8 @@ def divide_data(basic_path, datafile):
             for _ in f:
                 total_count += 1
     else:
-        print("file " + datafile + " not found!")
+        print("Error: file " + datafile + " not found!")
+        exit(1)
 
     print(f"Found {total_count} data entries")
     file_count = 24;

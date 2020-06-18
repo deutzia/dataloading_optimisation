@@ -9,6 +9,7 @@ for p in sys.path:
         path = p[:pos + len(suffix)]
 
 if (path == None):
-    raise Exception("No path containing 'dataloading_optimisation/'")
+    print("No path containing 'dataloading_optimisation/'. The project root directory has to be named 'dataloading_optimisation'.")
+    exit(1)
 elif (not path in sys.path):
     sys.path.append(path)

@@ -9,8 +9,8 @@ else:
     sys.exit(2)
 
 rec_cnt_for_2GiB = 8523973 # number of records
-rec_cnt = [rec_cnt_for_2GiB, rec_cnt_for_2GiB // 4, rec_cnt_for_2GiB // 1024, 1000]
-out_name_suff = ["big", "medium", "small", "1000r"]
+rec_cnt = [rec_cnt_for_2GiB, rec_cnt_for_2GiB // 4, rec_cnt_for_2GiB // 1024, 1000, 24]
+out_name_suff = ["big", "medium", "small", "1000r", "24r"]
 
 outs = list(map(
     lambda suff: open(os.path.join(path_to_dir, "day_0_repr_sample_" + suff), "w"),

@@ -3,7 +3,6 @@
 git submodule init
 git submodule update
 
-cd ../cnpy
+cd cnpy
 cmake -DCMAKE_INSTALL_PREFIX=. .
 make
-

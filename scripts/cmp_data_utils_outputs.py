@@ -87,7 +87,16 @@ if __name__ == "__main__":
                         help=f"The name of the data file that will be used to test the script. Defaultly: {default_data_file}")
     args = parser.parse_args()
 
-    data_utils = importlib.import_module(f"{args.data_utils_dir}.data_utils", package=True)
+    try:
+        data_utils = importlib.import_module(f"{args.data_utils_dir}.data_utils", package=True)
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+    data_file = f"./test_data/{args.data_file}"
+    if not path.exists(data_file):
+        print("Error: file " + data_file + " not found!")
+        exit(1)
 
     # Disable stdout and stderr
     devnull = open(os.devnull, "w")
@@ -97,7 +106,6 @@ if __name__ == "__main__":
     sys.stderr = devnull
 
     # Create data_utils outputs
-    data_file = f"./test_data/{args.data_file}"
     ensure_tgrel_results_exists(data_file)
     terabyte_dataloading_benchmark.launch_dataloading(basic_path="./test_data", datafile=data_file,
                                                       data_utils_module=data_utils)
