@@ -1,10 +1,22 @@
 # DLRM
 
-## Extracting representative samples from file day_0
+## Python requirements
+- bcolors
+- importlib
+- numpy
+- pandas
+
+To meet all the requirements, run `pip install -r requirements.txt`
+
+## Obtaining sample data
+
+Download `day_0` archive, which is available at http://azuremlsampleexperiments.blob.core.windows.net/criteo/day_0.gz
+
+## Extracting representative samples from the file day_0
 
 ### Spliting `day_0`
 
-Spliting `day_0` into 23 files `day_0_big_0`, ..., `day_0_big_22`
+Spliting the file `day_0` into 23 files `day_0_big_0`, ..., `day_0_big_22`
 ```bash
 for i in {0..22}; do split -d -n l/${i+1}/23 day_0 > day_0_big_$i; done
 ```
