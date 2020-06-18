@@ -1,12 +1,25 @@
 # DLRM
 
-## Python requirements
+## Technical issues
+
+### Root directory
+
+The repository should be cloned as `dataloading_optimisation`. The project root directory is required to be named `dataloading_optimisation` for the scripts to work properly. In this README we denote the project root directory as `/`. 
+
+### Python requirements
 - bcolors
 - importlib
 - numpy
 - pandas
+- tables
 
-To meet all the requirements, run `pip install -r requirements.txt`
+To meet all the requirements, run `pip install -r requirements.txt` in `/`.
+
+### C++ dependencies
+- cnpy
+- fast-cpp-csv-parser
+
+To build and install them, run `scripts/cpp_install.sh` in `/`.
 
 ## Obtaining sample data
 
@@ -23,20 +36,20 @@ for i in {0..22}; do split -d -n l/${i+1}/23 day_0 > day_0_big_$i; done
 
 ### Creating files with representative samples
 
-Extracting samples from the files `day_0_big_0`, ..., `day_0_big_22` into files:
+Run `python3 scripts/extract_smaples.py PATH` in `/`,
+
+where `PATH` link to a directory containing files `day_0_big_0`, ..., `day_0_big_22`
+
+It extracts samples from the files `day_0_big_0`, ..., `day_0_big_22` into files:
 - `day_0_repr_sample_big` (~2GiB)
 - `day_0_repr_sample_medium` (~0.5GiB)
 - `day_0_repr_sample_small` (~2MiB)
 - `day_0_repr_sample_1000r` (~250KiB - 1000 records)
+- `day_0_repr_sample_24r` (~6KiB - 24 records)
 
 Records from the above files meet the following condition:
 
-`day_0_repr_sample_1000r` ⊆ `day_0_repr_sample_small` ⊆ `day_0_repr_sample_medium` ⊆ `day_0_repr_sample_big`
-
-```
-python3 scripts/extract_smaples.py PATH
-```
-where `PATH` link to a directory containing files `day_0_big_0`, ..., `day_0_big_22`
+`day_0_repr_sample_24r` ⊆ `day_0_repr_sample_1000r` ⊆ `day_0_repr_sample_small` ⊆ `day_0_repr_sample_medium` ⊆ `day_0_repr_sample_big`
 
 ## Launching terabyte dataloading pipeline with benchmark
 
@@ -47,7 +60,7 @@ where `PATH` link to a directory containing files `day_0_big_0`, ..., `day_0_big
 
 - `/scripts/terabyte_data_files_utils.py` has a function for removing all files created by `/scripts/data_divider.py` and `data_utils.py`.
 
-- `/scripts/terabyte_dataloading_benchmark.py` should be run in `/` (the main directory) as a working directory.
+- `/scripts/terabyte_dataloading_benchmark.py` launches the dataloading pipline.
 
 - `/test_data/` is a directory, where `day_0_repr_sample_*` files should be placed manually before launching `/scripts/terabyte_dataloading_benchmark.py`.
 
